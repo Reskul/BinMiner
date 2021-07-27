@@ -270,6 +270,7 @@ class Window(QMainWindow):
         if path:
             self.prodigal_path = path
 
+    # @pyqtSlot()
     def set_fetchmg(self):
         path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Select FetchMG Script', self.DEFAULTPATH, 'Perl Scripts (*.pl)')
         if path:
