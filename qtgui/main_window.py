@@ -1,5 +1,4 @@
 import subprocess
-
 import numpy as np
 from PyQt5.QtCore import QMetaObject, Q_ARG, Qt, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtWidgets import *
@@ -11,11 +10,15 @@ from lib import *
 from sklearn.manifold import TSNE
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
+from .paths_dialog import PathsDialog
 
 
 class Window(QMainWindow):
-    DEFAULTPATH = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Data\\precomputed\\"  # TODO: remove kind of
+    DEFAULTPATH_WIN = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Data\\precomputed\\"  # TODO: remove kind of
+    DEFAULTPATH_LINUX = "~/Documents/BA_Data/"
+    DEFAULTPATH = None
     DEBUG = True
+    OS = None
 
     prodigal_path = None
     fetchMG_path = None
@@ -33,8 +36,14 @@ class Window(QMainWindow):
     bw = 1
     contours = 25
 
-    def __init__(self, x: int, y: int, w: int, h: int, parent=None):
+    def __init__(self, x: int, y: int, w: int, h: int, os: str, parent=None):
         super().__init__(parent)
+        if os == 'Linux':
+            self.DEFAULTPATH = self.DEFAULTPATH_LINUX
+        elif os == 'Windows':
+            self.DEFAULTPATH = self.DEFAULTPATH_WIN
+        self.OS = os
+
         # General Settings
         self.main_widget = QWidget()
         self.setWindowTitle("Sequence Mining Tool")
@@ -122,7 +131,9 @@ class Window(QMainWindow):
         self.main_widget.setLayout(layout)
 
     def select_npy_file(self):
-        path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Numpy File', self.DEFAULTPATH, 'Numpy Files (*.npy)')
+        # TODO Change to "Load k-Mer Data" or something like this
+        path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Numpy File', self.DEFAULTPATH,
+                                              'Numpy Files (*.npy)')
         if self.DEBUG:
             print(path)
         if path:
@@ -138,7 +149,9 @@ class Window(QMainWindow):
 
     def select_fasta_file(self):
         """Select Fasta File for fundamental Data input and start pipe"""
-        fasta_path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Fasta File', self.DEFAULTPATH, 'Fasta Files (*.fasta)')
+        # TODO: change to "Start Marker Gene calculation"
+        fasta_path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Fasta File', self.DEFAULTPATH,
+                                                    'Fasta Files (*.fasta)')
         self.fasta_path_le.setText(fasta_path)
 
         runnable = FastaLoadingRunnable(fasta_path, self, self.prodigal_path, self.fetchMG_path, self.DEBUG)
@@ -228,27 +241,16 @@ class Window(QMainWindow):
 
     def create_menubar(self):
         """Creates Actions and the Menubar to show them in"""
-        set_prodigal_act = QAction("Set Prodigal", self)
-        set_prodigal_act.triggered.connect(self.set_prodigal)
-        if self.prodigal_path:
-            set_prodigal_act.setToolTip(self.prodigal_path)
-        else:
-            set_prodigal_act.setToolTip("Not Set!")
-
-        set_fetchmg_act = QAction("Set FetchMG", self)
-        set_fetchmg_act.triggered.connect(self.set_fetchmg)
-        if self.fetchMG_path:
-            set_fetchmg_act.setToolTip(self.fetchMG_path)
-        else:
-            set_fetchmg_act.setToolTip("Not Set!")
+        set_paths_act = QAction("Set Paths", self)
+        set_paths_act.triggered.connect(self.start_paths_dialog)
 
         menubar = self.menuBar()
         settings_menu = QMenu("&Settings", self)
-        settings_menu.addAction(set_prodigal_act)
-        settings_menu.addAction(set_fetchmg_act)
+        settings_menu.addAction(set_paths_act)
 
         menubar.addMenu(settings_menu)
         menubar.addMenu("Help")
+        # TODO fill Help Menu
 
     @pyqtSlot(np.ndarray)
     def set_data(self, data):
@@ -265,16 +267,10 @@ class Window(QMainWindow):
             print("[DEBUG] Window.protdata_ready()")
         # TODO: stop spinner and show grüner haken lol
 
-    def set_prodigal(self):
-        path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Select Prodigal Executable', self.DEFAULTPATH, 'Executables (*.exe)')
-        if path:
-            self.prodigal_path = path
-
-    # @pyqtSlot()
-    def set_fetchmg(self):
-        path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Select FetchMG Script', self.DEFAULTPATH, 'Perl Scripts (*.pl)')
-        if path:
-            self.fetchMG_path = path
+    def start_paths_dialog(self):
+        dialog = PathsDialog(self, self.DEFAULTPATH, debug=self.DEBUG)
+        dialog.setModal(True)
+        dialog.show()
 
 
 class LoadingNpyRunnable(QRunnable):
@@ -309,9 +305,12 @@ class FastaLoadingRunnable(QRunnable):
     def run(self) -> None:
         if self.DEBUG:
             print(f"[DEBUG] FastaLoadingRunnable.run()\n{self.path}\n{self.prodigal}\n{self.fetchMG}")
-        completed_prodigal = subprocess.run([self.prodigal, "-a", self.protein_file, "-i", self.path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # TODO: build a loading signal in gui
+        completed_prodigal = subprocess.run([self.prodigal, "-a", self.protein_file, "-i", self.path],
+                                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         completed_prodigal.check_returncode()
-        completed_fetchmg = subprocess.run(["perl", self.fetchMG, "-d", self.path, "-o", self.mg_output_dir, "-m extraction", self.protein_file],
-                                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        completed_fetchmg = subprocess.run(
+            ["perl", self.fetchMG, "-d", self.path, "-o", self.mg_output_dir, "-m extraction", self.protein_file],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         completed_fetchmg.check_returncode()
         QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection)
