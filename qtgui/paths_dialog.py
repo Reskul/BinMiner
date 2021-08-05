@@ -1,5 +1,5 @@
-from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
+from cfg import *
 
 
 class PathsDialog(QDialog):
@@ -8,13 +8,17 @@ class PathsDialog(QDialog):
     DEFAULTPATH = None
     DEBUG = None
 
-    def __init__(self, parent: QMainWindow, defaultpath, os: str = 'Linux', debug=False) -> None:
+    cfg = None
+
+    prodigal_path = None
+    fetchMG_path = None
+    datadir_path = None
+
+    def __init__(self, parent: QMainWindow, defaultpath, cfg: Configurator, os: str = 'Linux', debug=False) -> None:
         super().__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Set Paths")
-
-        # TODO: Read maybe existing Paths from file and write to LE's
-
+        self.cfg = cfg
         # set Variables ----------
         self.OS = os
         self.PARENT = parent
@@ -46,6 +50,11 @@ class PathsDialog(QDialog):
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.cancel_clicked)
 
+        # Set Texts if path existing ----------
+        self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
+        self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
+        self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
+
         # Overall Layout ----------
         layout = QGridLayout(self)
         layout.addWidget(prodigal_lbl, 0, 0)
@@ -54,9 +63,9 @@ class PathsDialog(QDialog):
         layout.addWidget(fetchmg_lbl, 1, 0)
         layout.addWidget(self.fetchMG_le, 1, 1)
         layout.addWidget(fetchmg_btn, 1, 2)
-        layout.addWidget(data_lbl, 2, 0)
-        layout.addWidget(self.data_le, 2, 1)
-        layout.addWidget(data_btn, 2, 2)
+        # layout.addWidget(data_lbl, 2, 0)
+        # layout.addWidget(self.data_le, 2, 1)
+        # layout.addWidget(data_btn, 2, 2)
         layout.addWidget(ok_btn, 3, 2)
         layout.addWidget(cancel_btn, 3, 0)
 
@@ -76,6 +85,7 @@ class PathsDialog(QDialog):
                 print(f"[DEBUG] Window.set_prodigal(): path = {path}")
             self.prodigal_le.setText(path)
             self.PARENT.prodigal_path = path
+            self.prodigal_path = path
 
     def set_fetchmg(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Select FetchMG Script', self.DEFAULTPATH,
@@ -83,6 +93,7 @@ class PathsDialog(QDialog):
         if path:
             self.fetchMG_le.setText(path)
             self.PARENT.fetchMG_path = path
+            self.fetchMG_path = path
 
     def set_datadir(self):
         """select dir where all data is stored"""
@@ -93,10 +104,16 @@ class PathsDialog(QDialog):
             dir_path = QFileDialog.getExistingDirectory(self, 'Select Directory', 'C:\\Users', QFileDialog.ShowDirsOnly)
         if dir_path:
             self.data_le.setText(dir_path)
-            # self.PARENT.DATADIR = dir_path  # TODO: add this to main Window
+            self.PARENT.DATADIR = dir_path
+            self.datadir_path = dir_path
 
     def ok_clicked(self):
-        # TODO: Write paths to some file
+        if self.datadir_path:
+            self.cfg.write(self.cfg.DATA_KEY, self.datadir_path)
+        if self.prodigal_path:
+            self.cfg.write(self.cfg.PRODIGAL_KEY, self.prodigal_path)
+        if self.fetchMG_path:
+            self.cfg.write(self.cfg.FETCHMG_KEY, self.fetchMG_path)
         self.close()
 
     def cancel_clicked(self):

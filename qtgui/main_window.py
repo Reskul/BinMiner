@@ -11,14 +11,17 @@ from sklearn.manifold import TSNE
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
 from .paths_dialog import PathsDialog
+from cfg import Configurator
 
 
 class Window(QMainWindow):
     DEFAULTPATH_WIN = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Data\\precomputed\\"  # TODO: remove kind of
-    DEFAULTPATH_LINUX = "~/Documents/BA_Data/"
+    DEFAULTPATH_LINUX = "~/Dokumente/BA_Data/"
     DEFAULTPATH = None
     DEBUG = True
     OS = None
+
+    DATADIR = None
 
     prodigal_path = None
     fetchMG_path = None
@@ -38,8 +41,13 @@ class Window(QMainWindow):
 
     def __init__(self, x: int, y: int, w: int, h: int, os: str, parent=None):
         super().__init__(parent)
+        self.cfg = Configurator("~/Dokumente/MGB")
         if os == 'Linux':
             self.DEFAULTPATH = self.DEFAULTPATH_LINUX
+            self.prodigal_path = self.cfg.read(self.cfg.PRODIGAL_KEY)
+            self.fetchMG_path = self.cfg.read(self.cfg.FETCHMG_KEY)
+            self.DATADIR = self.cfg.read(self.cfg.DATA_KEY)
+
         elif os == 'Windows':
             self.DEFAULTPATH = self.DEFAULTPATH_WIN
         self.OS = os
@@ -154,7 +162,8 @@ class Window(QMainWindow):
                                                     'Fasta Files (*.fasta)')
         self.fasta_path_le.setText(fasta_path)
 
-        runnable = FastaLoadingRunnable(fasta_path, self, self.prodigal_path, self.fetchMG_path, self.DEBUG)
+        runnable = FastaLoadingRunnable(fasta_path, self, self.prodigal_path, self.fetchMG_path, self.DATADIR,
+                                        self.DEBUG)
         QThreadPool.globalInstance().start(runnable)
 
     def update_plot(self, highlighted_cont=None, col=None):
@@ -268,7 +277,7 @@ class Window(QMainWindow):
         # TODO: stop spinner and show grüner haken lol
 
     def start_paths_dialog(self):
-        dialog = PathsDialog(self, self.DEFAULTPATH, debug=self.DEBUG)
+        dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
         dialog.setModal(True)
         dialog.show()
 
@@ -291,26 +300,29 @@ class LoadingNpyRunnable(QRunnable):
 
 
 class FastaLoadingRunnable(QRunnable):
-    protein_file = "protein_translations.fasta"
+    protein_file = "prot.fasta"
     mg_output_dir = "marker_genes"
 
-    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, debug=False):
+    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug=False):
         super().__init__()
         self.path = fasta_path
         self.call = called_by
         self.prodigal = prodigal_path
         self.fetchMG = fetchmg_path
         self.DEBUG = debug
+        self.DATADIR = datadir
 
     def run(self) -> None:
         if self.DEBUG:
             print(f"[DEBUG] FastaLoadingRunnable.run()\n{self.path}\n{self.prodigal}\n{self.fetchMG}")
         # TODO: build a loading signal in gui
-        completed_prodigal = subprocess.run([self.prodigal, "-a", self.protein_file, "-i", self.path],
-                                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        completed_prodigal = subprocess.run(
+            [self.prodigal, "-a", f"{self.DATADIR}/prodigal/{self.protein_file}", "-i", self.path],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         completed_prodigal.check_returncode()
         completed_fetchmg = subprocess.run(
-            ["perl", self.fetchMG, "-d", self.path, "-o", self.mg_output_dir, "-m extraction", self.protein_file],
+            ["perl", self.fetchMG, "-d", self.path, "-o", f"{self.DATADIR}/{self.mg_output_dir}", "-m extraction",
+             f"{self.DATADIR}/prodigal/{self.protein_file}"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         completed_fetchmg.check_returncode()
         QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection)
