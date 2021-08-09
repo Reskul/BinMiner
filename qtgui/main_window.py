@@ -15,6 +15,7 @@ from skimage.feature import peak_local_max
 from .paths_dialog import PathsDialog
 from cfg import Configurator
 import ntpath
+from fasta import *
 
 
 class Window(QMainWindow):
@@ -30,6 +31,7 @@ class Window(QMainWindow):
     fetchMG_path = None
 
     TMP_fetchMG_results_path = None
+    TMP_prodigal_results_path = None
 
     main_widget = None
 
@@ -180,7 +182,7 @@ class Window(QMainWindow):
         set_paths_act.triggered.connect(self.start_paths_dialog)
 
         use_existing_mgs = QAction("Use Existing Files", self)
-        use_existing_mgs.triggered.connect(self.analyze_markergenes)
+        use_existing_mgs.triggered.connect(self.process_markergenes)
 
         menubar = self.menuBar()
         settings_menu = QMenu("&Settings", self)
@@ -293,12 +295,22 @@ class Window(QMainWindow):
                     self.selected_data[i] = 0
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
 
-    def analyze_markergenes(self):
-        mg_path = self.TMP_fetchMG_results_path
+    def process_markergenes(self, tmp_mg_res, tmp_prod_res):
+        # mg_path = self.TMP_fetchMG_results_path
+        # prod_path = self.TMP_prodigal_results_path
+        mg_path = tmp_mg_res
+        prod_path = tmp_prod_res
         cog_files = [file for file in os.listdir(mg_path) if
                      os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
         print(f"Anzahl: {len(cog_files)}\n{cog_files}")
         # TODO: read files, convert header information
+        reader = FastaReader(FastaReader.PRODIGAL)
+        for f in cog_files:
+            path = os.path.join(tmp_mg_res, f)
+            header = reader.read_raw_file(open(path, 'r'))
+            contigs = [c.contig for c in header]
+
+
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
@@ -320,6 +332,7 @@ class LoadingNpyRunnable(QRunnable):
         contig_lengths = np.sum(data_raw, 1)
         x_mat = (data_raw.T / contig_lengths).T  # Norm data ??? ASK!
         data = TSNE(n_components=2).fit_transform(x_mat)  # T-SNE Data Dim reduction
+        print(np.shape(data))
         QMetaObject.invokeMethod(self.call, "set_data", Qt.QueuedConnection, Q_ARG(type(data), data))
 
 
