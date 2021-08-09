@@ -29,6 +29,8 @@ class Window(QMainWindow):
     prodigal_path = None
     fetchMG_path = None
 
+    TMP_fetchMG_results_path = None
+
     main_widget = None
 
     data_path = None
@@ -172,6 +174,48 @@ class Window(QMainWindow):
                                         self.DEBUG)
         QThreadPool.globalInstance().start(runnable)
 
+    def create_menubar(self):
+        """Creates Actions and the Menubar to show them in"""
+        set_paths_act = QAction("Set Paths", self)
+        set_paths_act.triggered.connect(self.start_paths_dialog)
+
+        use_existing_mgs = QAction("Use Existing Files", self)
+        use_existing_mgs.triggered.connect(self.analyze_markergenes)
+
+        menubar = self.menuBar()
+        settings_menu = QMenu("&Settings", self)
+        settings_menu.addAction(set_paths_act)
+        settings_menu.addAction(use_existing_mgs)
+
+        menubar.addMenu(settings_menu)
+        help_menu = menubar.addMenu("Help")
+        # TODO fill Help Menu
+
+    def start_paths_dialog(self):
+        dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
+        dialog.show()
+
+    @pyqtSlot(np.ndarray)
+    def set_data(self, data):
+        if self.DEBUG:
+            print("[DEBUG] Window.set_data()")
+        self.data = data
+        self.selected_data = np.zeros(len(data))
+        self.loading_spinner.stop()
+        self.read_in_layout.addSpacerItem(self.spacer_1)
+        self.update_plot()
+
+    @pyqtSlot()
+    def protdata_ready(self):
+        if self.DEBUG:
+            print("[DEBUG] Window.protdata_ready()")
+        # TODO: stop spinner and show grüner haken lol
+        # TODO: in dem MG's Ordner die gefundenen MG's abchecken
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        super().closeEvent(a0)
+        self.cfg.on_close()
+
     def update_plot(self, highlighted_cont=None, col=None):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
         if self.data is not None:
@@ -249,48 +293,17 @@ class Window(QMainWindow):
                     self.selected_data[i] = 0
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
 
+    def analyze_markergenes(self):
+        mg_path = self.TMP_fetchMG_results_path
+        cog_files = [file for file in os.listdir(mg_path) if
+                     os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
+        print(f"Anzahl: {len(cog_files)}\n{cog_files}")
+        # TODO: read files, convert header information
+
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
         # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
         pass
-
-    def create_menubar(self):
-        """Creates Actions and the Menubar to show them in"""
-        set_paths_act = QAction("Set Paths", self)
-        set_paths_act.triggered.connect(self.start_paths_dialog)
-
-        menubar = self.menuBar()
-        settings_menu = QMenu("&Settings", self)
-        settings_menu.addAction(set_paths_act)
-
-        menubar.addMenu(settings_menu)
-        menubar.addMenu("Help")
-        # TODO fill Help Menu
-
-    def start_paths_dialog(self):
-        dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
-        dialog.show()
-
-    @pyqtSlot(np.ndarray)
-    def set_data(self, data):
-        if self.DEBUG:
-            print("[DEBUG] Window.set_data()")
-        self.data = data
-        self.selected_data = np.zeros(len(data))
-        self.loading_spinner.stop()
-        self.read_in_layout.addSpacerItem(self.spacer_1)
-        self.update_plot()
-
-    @pyqtSlot()
-    def protdata_ready(self):
-        if self.DEBUG:
-            print("[DEBUG] Window.protdata_ready()")
-        # TODO: stop spinner and show grüner haken lol
-        # TODO: in dem MG's Ordner die gefundenen MG's abchecken
-
-    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        super().closeEvent(a0)
-        self.cfg.on_close()
 
 
 class LoadingNpyRunnable(QRunnable):
@@ -349,5 +362,6 @@ class FastaLoadingRunnable(QRunnable):
 
     def read_mgs(self):
         mg_path = f"{self.DATADIR}/{self.mg_output_dir}"
-        cog_files = [file for file in os.listdir(mg_path) if os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
+        cog_files = [file for file in os.listdir(mg_path) if
+                     os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
         print(f"Anzahl: {len(cog_files)}\n{cog_files}")
