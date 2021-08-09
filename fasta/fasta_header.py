@@ -41,7 +41,7 @@ class FastaHeaderNCBI:
 
 class FastaHeaderPRODIGAL:
     def __init__(self, contig, left, right, strand, id, partial, start_type, rbs_motif, rbs_spacer, gc_cont):
-        self.contig = contig
+        self.contig_part = contig
         self.left = left
         self.right = right
         self.strand = strand
@@ -52,8 +52,10 @@ class FastaHeaderPRODIGAL:
         self.rbs_spacer = rbs_spacer
         self.gc_cont = gc_cont
 
+        self.contig_pure = contig.split('_')[0]
+
     def __str__(self):
-        return f"{self.contig} ID={self.id}"
+        return f"{self.contig_pure} ID={self.id}"
 
     def __repr__(self):
-        return f"{self.contig} ID={self.id}"
+        return f"{self.contig_pure} ID={self.id}"
