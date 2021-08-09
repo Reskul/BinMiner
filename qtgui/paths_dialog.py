@@ -52,11 +52,11 @@ class PathsDialog(QDialog):
         self.mg_le = QLineEdit()
         self.mg_le.setReadOnly(True)
 
-        prod_lbl = QLabel("Prodigal Ergebnisse:")
-        prod_btn = QPushButton("Wählen")
-        prod_btn.clicked.connect(self.find_prodigal_results)
-        self.prod_le = QLineEdit()
-        self.prod_le.setReadOnly(True)
+        fasta_lbl = QLabel("Original Daten:")
+        fasta_btn = QPushButton("Wählen")
+        fasta_btn.clicked.connect(self.find_input_data)
+        self.fasta_le = QLineEdit()
+        self.fasta_le.setReadOnly(True)
 
         start_btn = QPushButton("Berechnen")
         start_btn.clicked.connect(self.start_result_processing)
@@ -94,9 +94,9 @@ class PathsDialog(QDialog):
         layout.addWidget(mg_lbl, 4, 0)
         layout.addWidget(self.mg_le, 4, 1)
         layout.addWidget(mg_btn, 4, 2)
-        layout.addWidget(prod_lbl, 5, 0)
-        layout.addWidget(self.prod_le, 5, 1)
-        layout.addWidget(prod_btn, 5, 2)
+        layout.addWidget(fasta_lbl, 5, 0)
+        layout.addWidget(self.fasta_le, 5, 1)
+        layout.addWidget(fasta_btn, 5, 2)
         layout.addWidget(start_btn, 6, 2)
 
         layout.addWidget(ok_btn, 7, 2)
@@ -151,14 +151,14 @@ class PathsDialog(QDialog):
             self.mg_le.setText(path)
             self.PARENT.TMP_fetchMG_results_path = path
 
-    def find_prodigal_results(self):
+    def find_input_data(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Select Fasta File', self.cfg.homepath, "Fasta Files (*.fasta)")
         if path:
-            self.prod_le.setText(path)
+            self.fasta_le.setText(path)
             self.PARENT.TMP_prodigal_results_path = path
 
     def start_result_processing(self):
-        self.PARENT.process_markergenes(self.mg_le.text(), self.prod_le.text())
+        self.PARENT.process_markergenes(self.mg_le.text(), self.fasta_le.text())
 
     def ok_clicked(self):
         if self.datadir_path:
