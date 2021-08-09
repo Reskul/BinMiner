@@ -4,6 +4,7 @@ import os
 
 
 class Configurator:
+    DEBUG = True
     homepath = None
     cfg_file = None
     keys = {"prodigal": "", "fetchMG": "", "working": ""}
@@ -16,6 +17,7 @@ class Configurator:
         filepath = f"{path}/paths.json"
         if os.path.exists(filepath):
             self.cfg_file = open(filepath, "r+")
+            self.keys = json.load(self.cfg_file)
             print("existing")
         else:
             self.cfg_file = open(filepath, "w+")
@@ -25,10 +27,15 @@ class Configurator:
 
     def write(self, key: str, val):
         self.keys[key] = val
-        self.cfg_file.truncate(0)
+        self.cfg_file.seek(0)
+        self.cfg_file.truncate()
         self.cfg_file.write(json.dumps(self.keys))
         self.cfg_file.flush()
 
     def read(self, key: str):
-        self.keys = json.load(self.cfg_file)
         return self.keys[key]
+
+    def on_close(self):
+        if self.DEBUG:
+            print("[DEBUG] Configurator.on_close()")
+        self.cfg_file.close()
