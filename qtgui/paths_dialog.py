@@ -69,6 +69,11 @@ class PathsDialog(QDialog):
         layout.addWidget(ok_btn, 3, 2)
         layout.addWidget(cancel_btn, 3, 0)
 
+        # Write Text to LE's if path is already set ----------
+        self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
+        self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
+        self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
+
     def set_prodigal(self):
         path = None
         if self.OS == 'Windows':
