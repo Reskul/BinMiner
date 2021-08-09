@@ -6,15 +6,16 @@ from fasta.sequence import Sequence
 class FastaReader:
     UNIPROTKB = 1
     NCBI = 2
+    PRODIGAL = 3
 
-    def __init__(self, db):
-        self.db = db  # db: Database 1=UniProtKB, 2=NCBI
-        pass
+    def __init__(self, origin):
+        self.origin = origin  # origin/Database 1=UniProtKB, 2=NCBI, 3=Prodigal
 
     def read_raw_file(self, collection_file):
         data_vec = collection_file.read().split('>')[1:]
-        header = np.empty(len(data_vec), dtype=FastaHeaderUniProtKB)
-        if self.db == self.UNIPROTKB:
+        header = None
+        if self.origin == self.UNIPROTKB:
+            header = np.empty(len(data_vec), dtype=FastaHeaderUniProtKB)
             i_idx = 0
             for entry in data_vec:
                 info_line = entry.split("\n")[0]
@@ -40,8 +41,33 @@ class FastaReader:
                 prot_existence = info_line[prot_existence_idx + 3:seq_ver_idx].strip()
                 seq_ver = info_line[seq_ver_idx + 3:].strip()
 
-                header[i_idx] = FastaHeaderUniProtKB(db, unique_id, entry_name, prot_name, org_name, org_id, gene_name, prot_existence, seq_ver)
+                header[i_idx] = FastaHeaderUniProtKB(db, unique_id, entry_name, prot_name, org_name, org_id, gene_name,
+                                                     prot_existence, seq_ver)
                 i_idx = i_idx + 1
+        elif self.origin == self.PRODIGAL:
+            header = np.empty(len(data_vec), dtype=FastaHeaderPRODIGAL)
+            i_idx = 0
+            for entry in data_vec:
+                info_line = entry.split('\n')[0]
+                first = info_line.split('#')
+                second = first[4]
+                first = first[:4]
+                second = second.split(';')
+
+                name = first[0].strip()
+                left = first[1].strip()
+                right = first[2].strip()
+                strand = first[3].strip()
+                id = second[0].split('=')[1].strip()
+                partial = second[1].split('=')[1]
+                start_type = second[2].split('=')[1]
+                rbs_motif = second[3].split('=')[1]
+                rbs_spacer = second[4].split('=')[1]
+                gc_cont = second[5].split('=')[1]
+
+                header[i_idx] = FastaHeaderPRODIGAL(name, left, right, strand, id, partial, start_type, rbs_motif,
+                                                    rbs_spacer, gc_cont)
+                i_idx += 1
         else:
             pass
         return header
@@ -53,7 +79,7 @@ class FastaReader:
         data = data.split(">")[1:]
         seq_cnt = len(data)
         seq_vec = np.empty(seq_cnt, dtype=FastaHeaderUniProtKB)
-        if self.db == self.UNIPROTKB:
+        if self.origin == self.UNIPROTKB:
             i_idx = 0
             for item in data:
                 seq_fasta = item.split("\n")
@@ -102,3 +128,11 @@ class FastaReader:
         seq_vec = self.combine_sequence_data(header_vec, ma_vec)
 
         return seq_vec
+
+
+if __name__ == '__main__':
+    file = open('/home/rom/Documents/MGB/prodigal/10s_prot.fasta')
+    print(type(file))
+    reader = FastaReader(FastaReader.PRODIGAL)
+    header = reader.read_raw_file(file)
+    print(header[0])

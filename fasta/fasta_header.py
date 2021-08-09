@@ -1,4 +1,6 @@
 class FastaHeaderUniProtKB:
+    associated_ma_seq = None
+
     def __init__(self, db, u_id, entry, prot, org, o_id, gene, ex, ver):
         self.database = db
         self.unique_id = u_id
@@ -35,3 +37,23 @@ class FastaHeaderNCBI:
 
     def __repr__(self):
         return "" + str(self.unique_id) + " | " + str(self.prot_name) + " | " + str(self.organism)
+
+
+class FastaHeaderPRODIGAL:
+    def __init__(self, contig, left, right, strand, id, partial, start_type, rbs_motif, rbs_spacer, gc_cont):
+        self.contig = contig
+        self.left = left
+        self.right = right
+        self.strand = strand
+        self.id = id
+        self.partial = partial,
+        self.start_type = start_type
+        self.rbs_motif = rbs_motif
+        self.rbs_spacer = rbs_spacer
+        self.gc_cont = gc_cont
+
+    def __str__(self):
+        return f"{self.contig} ID={self.id}"
+
+    def __repr__(self):
+        return f"{self.contig} ID={self.id}"
