@@ -44,6 +44,13 @@ class PathsDialog(QDialog):
         self.data_le = QLineEdit()
         self.data_le.setReadOnly(True)  # TODO: Necessary?
 
+        # TEMPORARY PATHS ----------
+        mg_lbl = QLabel("FetchMG Ergebnisse: ")
+        mg_btn = QPushButton("Wählen")
+        mg_btn.clicked.connect(self.find_fetchmg_results)
+        self.mg_le = QLineEdit()
+        self.mg_le.setReadOnly(True)
+
         # Control btns
         ok_btn = QPushButton("Ok")
         ok_btn.clicked.connect(self.ok_clicked)
@@ -54,6 +61,12 @@ class PathsDialog(QDialog):
         self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
         self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
         self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
+
+        # Design Separator ----------
+        line = QFrame()
+        line.setGeometry(0, 0, 200, 3)
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
 
         # Overall Layout ----------
         layout = QGridLayout(self)
@@ -66,13 +79,18 @@ class PathsDialog(QDialog):
         # layout.addWidget(data_lbl, 2, 0)
         # layout.addWidget(self.data_le, 2, 1)
         # layout.addWidget(data_btn, 2, 2)
-        layout.addWidget(ok_btn, 3, 2)
-        layout.addWidget(cancel_btn, 3, 0)
+        layout.addWidget(line, 2, 0, 1, 3)
+        layout.addWidget(QLabel("Temporär"), 3, 0)
+        layout.addWidget(mg_lbl, 4, 0)
+        layout.addWidget(self.mg_le, 4, 1)
+        layout.addWidget(mg_btn, 4, 2)
+        layout.addWidget(ok_btn, 5, 2)
+        layout.addWidget(cancel_btn, 5, 0)
 
         # Write Text to LE's if path is already set ----------
-        self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
-        self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
-        self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
+        # self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
+        # self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
+        # self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
 
     def set_prodigal(self):
         path = None
@@ -111,6 +129,12 @@ class PathsDialog(QDialog):
             self.data_le.setText(dir_path)
             self.PARENT.DATADIR = dir_path
             self.datadir_path = dir_path
+
+    def find_fetchmg_results(self):
+        path = QFileDialog.getExistingDirectory(self, 'Select Directory', self.cfg.homepath, QFileDialog.ShowDirsOnly)
+        if path:
+            self.mg_le.setText(path)
+            self.PARENT.TMP_fetchMG_results_path = path
 
     def ok_clicked(self):
         if self.datadir_path:
