@@ -1,5 +1,7 @@
+import os
 import subprocess
 import numpy as np
+from PyQt5 import QtGui
 from PyQt5.QtCore import QMetaObject, Q_ARG, Qt, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtWidgets import *
 from matplotlib import patches
@@ -12,6 +14,7 @@ from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
 from .paths_dialog import PathsDialog
 from cfg import Configurator
+import ntpath
 
 
 class Window(QMainWindow):
@@ -39,14 +42,17 @@ class Window(QMainWindow):
     bw = 1
     contours = 25
 
-    def __init__(self, x: int, y: int, w: int, h: int, os: str, parent=None):
+    def __init__(self, x: int, y: int, w: int, h: int, os: str, cfg: Configurator = None, parent=None):
         super().__init__(parent)
-        self.cfg = Configurator("~/Dokumente/MGB")
+        if cfg:
+            self.cfg = cfg
         if os == 'Linux':
             self.DEFAULTPATH = self.DEFAULTPATH_LINUX
-            self.prodigal_path = self.cfg.read(self.cfg.PRODIGAL_KEY)
-            self.fetchMG_path = self.cfg.read(self.cfg.FETCHMG_KEY)
-            self.DATADIR = self.cfg.read(self.cfg.DATA_KEY)
+            if self.cfg:
+                self.prodigal_path = self.cfg.read(self.cfg.PRODIGAL_KEY)
+                self.fetchMG_path = self.cfg.read(self.cfg.FETCHMG_KEY)
+                # self.DATADIR = self.cfg.read(self.cfg.DATA_KEY)
+                self.DATADIR = self.cfg.homepath
 
         elif os == 'Windows':
             self.DEFAULTPATH = self.DEFAULTPATH_WIN
@@ -261,6 +267,10 @@ class Window(QMainWindow):
         menubar.addMenu("Help")
         # TODO fill Help Menu
 
+    def start_paths_dialog(self):
+        dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
+        dialog.show()
+
     @pyqtSlot(np.ndarray)
     def set_data(self, data):
         if self.DEBUG:
@@ -271,15 +281,16 @@ class Window(QMainWindow):
         self.read_in_layout.addSpacerItem(self.spacer_1)
         self.update_plot()
 
+    @pyqtSlot()
     def protdata_ready(self):
         if self.DEBUG:
             print("[DEBUG] Window.protdata_ready()")
         # TODO: stop spinner and show grüner haken lol
+        # TODO: in dem MG's Ordner die gefundenen MG's abchecken
 
-    def start_paths_dialog(self):
-        dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
-        dialog.setModal(True)
-        dialog.show()
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        super().closeEvent(a0)
+        self.cfg.on_close()
 
 
 class LoadingNpyRunnable(QRunnable):
@@ -300,8 +311,6 @@ class LoadingNpyRunnable(QRunnable):
 
 
 class FastaLoadingRunnable(QRunnable):
-    protein_file = "prot.fasta"
-    mg_output_dir = "marker_genes"
 
     def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug=False):
         super().__init__()
@@ -312,17 +321,33 @@ class FastaLoadingRunnable(QRunnable):
         self.DEBUG = debug
         self.DATADIR = datadir
 
+        fasta_filename = ntpath.basename(fasta_path)
+        dataset_name, filetype = fasta_filename.split('.', 1)
+        self.protein_file = f"{dataset_name}_prot.fasta"
+        self.mg_output_dir = f"mgs_{dataset_name}"
+
     def run(self) -> None:
         if self.DEBUG:
             print(f"[DEBUG] FastaLoadingRunnable.run()\n{self.path}\n{self.prodigal}\n{self.fetchMG}")
-        # TODO: build a loading signal in gui
+
+        if not os.path.exists(f"{self.DATADIR}/prodigal/"):
+            print(f"Creating {self.DATADIR}/prodigal/")
+            os.makedirs(f"{self.DATADIR}/prodigal/")
+
         completed_prodigal = subprocess.run(
             [self.prodigal, "-a", f"{self.DATADIR}/prodigal/{self.protein_file}", "-i", self.path],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         completed_prodigal.check_returncode()
+
         completed_fetchmg = subprocess.run(
             ["perl", self.fetchMG, "-d", self.path, "-o", f"{self.DATADIR}/{self.mg_output_dir}", "-m extraction",
              f"{self.DATADIR}/prodigal/{self.protein_file}"],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        completed_fetchmg.check_returncode()
+        # completed_fetchmg.check_returncode()
+        self.read_mgs()
         QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection)
+
+    def read_mgs(self):
+        mg_path = f"{self.DATADIR}/{self.mg_output_dir}"
+        cog_files = [file for file in os.listdir(mg_path) if os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
+        print(f"Anzahl: {len(cog_files)}\n{cog_files}")
