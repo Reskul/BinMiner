@@ -295,20 +295,27 @@ class Window(QMainWindow):
                     self.selected_data[i] = 0
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
 
-    def process_markergenes(self, tmp_mg_res, tmp_prod_res):
+    def process_markergenes(self, tmp_mg_res, tmp_fasta_res):
         # mg_path = self.TMP_fetchMG_results_path
         # prod_path = self.TMP_prodigal_results_path
         mg_path = tmp_mg_res
-        prod_path = tmp_prod_res
+        fasta_path = tmp_fasta_res
         cog_files = [file for file in os.listdir(mg_path) if
                      os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
-        print(f"Anzahl: {len(cog_files)}\n{cog_files}")
-        # TODO: read files, convert header information
+        if self.DEBUG:
+            print(f"[DEBUG] Anzahl: {len(cog_files)}\n{cog_files}\n")
         reader = FastaReader(FastaReader.PRODIGAL)
+        mgs = []
         for f in cog_files:
             path = os.path.join(tmp_mg_res, f)
             header = reader.read_raw_file(open(path, 'r'))
-            contigs = [c.contig for c in header]
+            contigs = [c.contig_pure for c in header]
+            mg = MarkerGene(f.split('.')[0])
+            mg.add_contig(contigs)
+            mgs.append(mg)
+        print(mgs[0])
+        # TODO Iterate through mgs and contig input data
+
 
 
 
