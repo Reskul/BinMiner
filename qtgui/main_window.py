@@ -39,6 +39,7 @@ class Window(QMainWindow):
     data = None
 
     selected_data = None
+    selected_nbr = 0
     grid_points = 100
 
     cont_data = None
@@ -139,14 +140,29 @@ class Window(QMainWindow):
         slider_layout.addWidget(self.cont_slider, 1, 1, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(cont_slider_lbl, 2, 1)
 
+        # Process Selected Layout ----------
+        process_sel_btn = QPushButton("Ausgewählte Analysieren")
+        process_sel_btn.clicked.connect(self.analyze_selected)
+        self.sel_lbl = QLabel()
+        self.set_selected_cnt()
+
         # Manage layout ----------
         layout = QGridLayout()
         layout.addLayout(self.fasta_in_layout, 0, 0, 1, 2)
         layout.addLayout(self.read_in_layout, 1, 0, 1, 2)
         layout.addLayout(diagram_layout, 2, 0)
         layout.addLayout(slider_layout, 2, 1)
+        layout.addWidget(self.sel_lbl, 3, 0, alignment=Qt.AlignRight)
+        layout.addWidget(process_sel_btn, 3, 1)
 
         self.main_widget.setLayout(layout)
+
+    def set_selected_cnt(self):
+        if self.selected_data:
+            count = sum(self.selected_data)
+            self.sel_lbl.setText(f"Ausgewählt: {count}")
+        else:
+            self.sel_lbl.setText(f"Ausgewählt: --")
 
     def select_npy_file(self):
         # TODO Change to "Load k-Mer Data" or something like this
@@ -294,12 +310,14 @@ class Window(QMainWindow):
                 else:
                     self.selected_data[i] = 0
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
+            self.set_selected_cnt()
 
     def process_markergenes(self, tmp_mg_res, tmp_fasta_res):
         # mg_path = self.TMP_fetchMG_results_path
         # prod_path = self.TMP_prodigal_results_path
         mg_path = tmp_mg_res
         fasta_path = tmp_fasta_res
+        # Find Marker Gene Files and read in to Data-Model
         cog_files = [file for file in os.listdir(mg_path) if
                      os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
         if self.DEBUG:
@@ -311,13 +329,27 @@ class Window(QMainWindow):
             header = reader.read_raw_file(open(path, 'r'))
             contigs = [c.contig_pure for c in header]
             mg = MarkerGene(f.split('.')[0])
-            mg.add_contig(contigs)
+            mg.add_contigs(contigs)
             mgs.append(mg)
-        print(mgs[0])
-        # TODO Iterate through mgs and contig input data
 
+        if self.DEBUG:
+            print(f"[DEBUG] MG[0]:{mgs[0]}")
 
-
+        # Read in Data from Fasta to get all Contigs
+        reader = FastaReader(FastaReader.MYCC)
+        header = reader.read_raw_file(open(fasta_path, 'r'))
+        contigs = np.empty(len(header), dtype=Contig)
+        i_idx = 0
+        # TODO is there a better method? faster?
+        for h in header:
+            c = Contig(h.contig)
+            for mg in mgs:
+                if mg.__contains__(h.contig):
+                    c.add_mg(mg.MG_name)
+            contigs[i_idx] = c
+            i_idx += 1
+        print(contigs[0])
+        print(len(contigs))
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""

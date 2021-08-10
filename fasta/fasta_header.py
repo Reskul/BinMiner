@@ -59,3 +59,14 @@ class FastaHeaderPRODIGAL:
 
     def __repr__(self):
         return f"{self.contig_pure} ID={self.id}"
+
+
+class FastaHeaderMYCC:
+    def __init__(self, contig):
+        self.contig = contig
+
+    def __str__(self):
+        return f"{self.contig}"
+
+    def __repr__(self):
+        return f"{self.contig}"

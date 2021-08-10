@@ -7,6 +7,7 @@ class FastaReader:
     UNIPROTKB = 1
     NCBI = 2
     PRODIGAL = 3
+    MYCC = 4
 
     def __init__(self, origin):
         self.origin = origin  # origin/Database 1=UniProtKB, 2=NCBI, 3=Prodigal
@@ -68,8 +69,15 @@ class FastaReader:
                 header[i_idx] = FastaHeaderPRODIGAL(name, left, right, strand, id, partial, start_type, rbs_motif,
                                                     rbs_spacer, gc_cont)
                 i_idx += 1
+        elif self.origin == self.MYCC:
+            header = np.empty(len(data_vec), dtype=FastaHeaderMYCC)
+            i_idx = 0
+            for entry in data_vec:
+                info_line = entry.split('\n')[0]
+                header[i_idx] = FastaHeaderMYCC(info_line.strip())
+                i_idx += 1
         else:
-            pass
+            print(f"[ERROR] Unknown header. {self.origin}")
         return header
 
     # read in multiple alignment as fasta
