@@ -38,6 +38,8 @@ class Window(QMainWindow):
     data_path = None
     data = None
 
+    CONTIGS = None
+
     selected_data = None
     selected_nbr = 0
     grid_points = 100
@@ -350,6 +352,7 @@ class Window(QMainWindow):
             i_idx += 1
         print(contigs[0])
         print(len(contigs))
+        self.CONTIGS = contigs
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
