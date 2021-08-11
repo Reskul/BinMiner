@@ -165,8 +165,9 @@ class Window(QMainWindow):
         self.main_widget.setLayout(layout)
 
     def set_selected_cnt(self):
-        if self.selected_data:
+        if self.selected_data is not None:
             count = sum(self.selected_data)
+            self.selected_nbr = count
             self.sel_lbl.setText(f"Ausgewählt: {count}")
         else:
             self.sel_lbl.setText(f"Ausgewählt: --")
@@ -314,6 +315,7 @@ class Window(QMainWindow):
                 print("Nbr of found paths:", len(path_list))
                 print(contained[0], np.shape(contained), '\n', np.shape(self.data))
             # TODO: Maybe use the contained array directly als self.selected_data
+            self.selected_data = np.empty(np.shape(contained))
             for i in range(len(contained)):
                 if contained[i]:
                     self.selected_data[i] = 1
