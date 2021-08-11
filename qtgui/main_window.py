@@ -12,7 +12,7 @@ from lib import *
 from sklearn.manifold import TSNE
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
-from .paths_dialog import PathsDialog
+from .dialogs import *
 from cfg import Configurator
 import ntpath
 from fasta import *
@@ -34,6 +34,7 @@ class Window(QMainWindow):
     TMP_prodigal_results_path = None
 
     main_widget = None
+    analyze_widget = None
 
     data_path = None
     data = None
@@ -339,6 +340,8 @@ class Window(QMainWindow):
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
+        self.analyze_widget = BinInfoDialog(self, self.selected_data, self.DEBUG)
+        self.analyze_widget.show()
         # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
         pass
 
