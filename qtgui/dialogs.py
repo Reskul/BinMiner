@@ -196,7 +196,7 @@ class PathsDialog(QDialog):
 
 
 class BinInfoDialog(QDialog):
-    def __init__(self, parent: QMainWindow, selected, debug=False):
+    def __init__(self, parent: QMainWindow, selected=None, debug=False):
         super().__init__(parent)
         self.setWindowTitle("Selected Bin")
         self.DEBUG = False
@@ -209,4 +209,5 @@ class BinInfoDialog(QDialog):
         self.update_gui()
 
     def update_gui(self):
-        pass
+        if self.data and self.isVisible():
+            pass
