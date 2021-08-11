@@ -20,7 +20,7 @@ class PathsDialog(QDialog):
         super().__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Set Paths")
-        self.setFixedWidth(720)
+        self.setFixedWidth(900)
         self.cfg = cfg
         # set Variables ----------
         self.OS = os
@@ -54,13 +54,13 @@ class PathsDialog(QDialog):
         self.mg_le = QLineEdit()
         self.mg_le.setReadOnly(True)
 
-        fasta_lbl = QLabel("Original Daten:")
+        fasta_lbl = QLabel("Original Contig Daten:")
         fasta_btn = QPushButton("Wählen")
         fasta_btn.clicked.connect(self.set_fasta_data)
         self.fasta_le = QLineEdit()
         self.fasta_le.setReadOnly(True)
 
-        fasta_names_lbl = QLabel("Contig Übersetzung:")
+        fasta_names_lbl = QLabel("Contig Übersetzung(Optional):")
         fasta_names_btn = QPushButton("Wählen")
         fasta_names_btn.clicked.connect(self.set_fasta_translation)
         self.fasta_names_le = QLineEdit()

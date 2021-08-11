@@ -325,13 +325,15 @@ class Window(QMainWindow):
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
             self.set_selected_cnt()
 
-    def process_markergenes(self, tmp_mg_res, tmp_fasta_path, tmp_fasta_translation_path):
+    def process_markergenes(self, tmp_mg_res: str, tmp_fasta_path: str, tmp_fasta_translation_path: str):
         self.is_processing_fasta = True
         self.fasta_in_layout.removeItem(self.spacer_0)
         self.loading_spinner1.start()
-
+        translate = False
+        if tmp_fasta_translation_path:
+            translate = True
         runnable = FastaLoadingRunnable(tmp_fasta_path, self, self.prodigal_path, tmp_mg_res, self.DATADIR,
-                                        debug=self.DEBUG, only_analyze=True, contig_translation=True,
+                                        debug=self.DEBUG, only_analyze=True, contig_translation=translate,
                                         translation_file=tmp_fasta_translation_path)
         QThreadPool.globalInstance().start(runnable)
 
