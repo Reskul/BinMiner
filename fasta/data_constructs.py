@@ -24,15 +24,16 @@ class MarkerGene:
 
 
 class Contig:
-    def __init__(self, name):
+    def __init__(self, name, real_name=None):
         self.CONTIG_name = name
         self.mgs = []
+        self.REAL_name = real_name
 
     def __str__(self):
-        return f"{self.CONTIG_name}:{self.mgs}"
+        return f"{self.CONTIG_name}/{self.REAL_name}:{self.mgs}"
 
     def __repr__(self):
-        return f"{self.CONTIG_name}:{self.mgs}"
+        return f"{self.CONTIG_name}/{self.REAL_name}:{self.mgs}"
 
     def add_mg(self, marker_gene):
         self.mgs.append(marker_gene)
