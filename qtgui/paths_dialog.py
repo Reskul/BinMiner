@@ -1,3 +1,5 @@
+import ntpath
+
 from PyQt5.QtWidgets import *
 from cfg import *
 
@@ -48,15 +50,21 @@ class PathsDialog(QDialog):
         # TEMPORARY PATHS ----------
         mg_lbl = QLabel("FetchMG Ergebnisse:")
         mg_btn = QPushButton("Wählen")
-        mg_btn.clicked.connect(self.find_fetchmg_results)
+        mg_btn.clicked.connect(self.set_fetchmg_results)
         self.mg_le = QLineEdit()
         self.mg_le.setReadOnly(True)
 
         fasta_lbl = QLabel("Original Daten:")
         fasta_btn = QPushButton("Wählen")
-        fasta_btn.clicked.connect(self.find_input_data)
+        fasta_btn.clicked.connect(self.set_fasta_data)
         self.fasta_le = QLineEdit()
         self.fasta_le.setReadOnly(True)
+
+        fasta_names_lbl = QLabel("Contig Übersetzung:")
+        fasta_names_btn = QPushButton("Wählen")
+        fasta_names_btn.clicked.connect(self.set_fasta_translation)
+        self.fasta_names_le = QLineEdit()
+        self.fasta_names_le.setReadOnly(True)
 
         start_btn = QPushButton("Berechnen")
         start_btn.clicked.connect(self.start_result_processing)
@@ -89,23 +97,26 @@ class PathsDialog(QDialog):
         # layout.addWidget(data_lbl, 2, 0)
         # layout.addWidget(self.data_le, 2, 1)
         # layout.addWidget(data_btn, 2, 2)
+
         layout.addWidget(line, 2, 0, 1, 3)
         layout.addWidget(QLabel("Temporär"), 3, 0)
+
         layout.addWidget(mg_lbl, 4, 0)
         layout.addWidget(self.mg_le, 4, 1)
         layout.addWidget(mg_btn, 4, 2)
+
         layout.addWidget(fasta_lbl, 5, 0)
         layout.addWidget(self.fasta_le, 5, 1)
         layout.addWidget(fasta_btn, 5, 2)
-        layout.addWidget(start_btn, 6, 2)
 
-        layout.addWidget(ok_btn, 7, 2)
-        layout.addWidget(cancel_btn, 7, 0)
+        layout.addWidget(fasta_names_lbl, 6, 0)
+        layout.addWidget(self.fasta_names_le, 6, 1)
+        layout.addWidget(fasta_names_btn, 6, 2)
 
-        # Write Text to LE's if path is already set ----------
-        # self.prodigal_le.setText(self.cfg.read(self.cfg.PRODIGAL_KEY))
-        # self.fetchMG_le.setText(self.cfg.read(self.cfg.FETCHMG_KEY))
-        # self.data_le.setText(self.cfg.read(self.cfg.DATA_KEY))
+        layout.addWidget(start_btn, 7, 2)
+
+        layout.addWidget(ok_btn, 8, 2)
+        layout.addWidget(cancel_btn, 8, 0)
 
     def set_prodigal(self):
         path = None
@@ -145,20 +156,31 @@ class PathsDialog(QDialog):
             self.PARENT.DATADIR = dir_path
             self.datadir_path = dir_path
 
-    def find_fetchmg_results(self):
+    def set_fetchmg_results(self):
         path = QFileDialog.getExistingDirectory(self, 'Select Directory', self.cfg.homepath, QFileDialog.ShowDirsOnly)
         if path:
             self.mg_le.setText(path)
-            self.PARENT.TMP_fetchMG_results_path = path
+            # self.PARENT.TMP_fetchMG_results_path = path
 
-    def find_input_data(self):
+    def set_fasta_data(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Select Fasta File', self.cfg.homepath, "Fasta Files (*.fasta)")
         if path:
             self.fasta_le.setText(path)
-            self.PARENT.TMP_prodigal_results_path = path
+            # self.PARENT.TMP_prodigal_results_path = path
+
+    def set_fasta_translation(self):
+        if ntpath.exists(self.fasta_le.text()):
+            in_path = ntpath.dirname(self.fasta_le.text())
+        else:
+            in_path = self.cfg.homepath
+
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Translation', in_path, "SPE Text Files (*.spe.txt)")
+
+        if path:
+            self.fasta_names_le.setText(path)
 
     def start_result_processing(self):
-        self.PARENT.process_markergenes(self.mg_le.text(), self.fasta_le.text())
+        self.PARENT.process_markergenes(self.mg_le.text(), self.fasta_le.text(), self.fasta_names_le.text())
 
     def ok_clicked(self):
         if self.datadir_path:
