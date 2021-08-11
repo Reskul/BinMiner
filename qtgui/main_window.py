@@ -325,12 +325,14 @@ class Window(QMainWindow):
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
             self.set_selected_cnt()
 
-    def process_markergenes(self, tmp_mg_res, tmp_fasta_path):
+    def process_markergenes(self, tmp_mg_res, tmp_fasta_path, tmp_fasta_translation_path):
         self.is_processing_fasta = True
         self.fasta_in_layout.removeItem(self.spacer_0)
         self.loading_spinner1.start()
+
         runnable = FastaLoadingRunnable(tmp_fasta_path, self, self.prodigal_path, tmp_mg_res, self.DATADIR,
-                                        debug=self.DEBUG, only_analyze=True)
+                                        debug=self.DEBUG, only_analyze=True, contig_translation=True,
+                                        translation_file=tmp_fasta_translation_path)
         QThreadPool.globalInstance().start(runnable)
 
     def analyze_selected(self):
@@ -359,16 +361,20 @@ class LoadingNpyRunnable(QRunnable):
 
 class FastaLoadingRunnable(QRunnable):
 
-    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug=False, only_analyze=False):
+    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug: bool = False,
+                 only_analyze: bool = False, contig_translation: bool = False, translation_file=None):
         super().__init__()
         self.path = fasta_path
         self.call = called_by
         self.prodigal = prodigal_path
         self.fetchMG = fetchmg_path
         self.DATADIR = datadir
+        if contig_translation:
+            self.translation_path = translation_file
 
         self.DEBUG = debug
         self.ONLY_ANALYZE = only_analyze
+        self.TRANSLATE_CONTIGS = contig_translation
 
         fasta_filename = ntpath.basename(fasta_path)
         dataset_name, filetype = fasta_filename.split('.', 1)
@@ -418,13 +424,17 @@ class FastaLoadingRunnable(QRunnable):
             mg.add_contigs(contigs)
             mgs.append(mg)
 
-        if self.DEBUG:
-            print(f"[DEBUG] MG[0]:\n{mgs[0]}")
+        # if self.DEBUG:
+        #     print(f"[DEBUG] MG[0]:\n{mgs[0]}")
 
         # READ-IN Data from Fasta to get all existing Contigs
         reader = FastaReader(FastaReader.MYCC)
         header = reader.read_raw_file(open(fasta_path, 'r'))
         contigs = np.empty(len(header), dtype=Contig)
+        content = None
+        if self.TRANSLATE_CONTIGS:
+            trans_file = open(self.translation_path, 'r')
+            content = trans_file.read()
         i_idx = 0
         # TODO is there a better method? faster?
         for h in header:
@@ -432,10 +442,18 @@ class FastaLoadingRunnable(QRunnable):
             for mg in mgs:
                 if mg.__contains__(h.contig):
                     c.add_mg(mg.MG_name)
+            if self.TRANSLATE_CONTIGS:
+                x = content.find(c.CONTIG_name)
+                y = content.find("\t", x)
+                z = content.find("\n", y)
+                y += 1
+                c.REAL_name = content[y:z]
+
             contigs[i_idx] = c
             i_idx += 1
 
         if self.DEBUG:
+            print(f"[DEBUG] Contig Example: {contigs[0]}")
             print(f"[DEBUG] Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
 
         return contigs
