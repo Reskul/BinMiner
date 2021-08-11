@@ -331,47 +331,6 @@ class Window(QMainWindow):
                                         debug=self.DEBUG, only_analyze=True)
         QThreadPool.globalInstance().start(runnable)
 
-        # # mg_path = self.TMP_fetchMG_results_path
-        # # prod_path = self.TMP_prodigal_results_path
-        # mg_path = tmp_mg_res
-        # fasta_path = tmp_fasta_res
-        # # Find Marker Gene Files and read in to Data-Model
-        # cog_files = [file for file in os.listdir(mg_path) if
-        #              os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
-        # if self.DEBUG:
-        #     print(f"[DEBUG] Anzahl: {len(cog_files)}\n{cog_files}\n")
-        # reader = FastaReader(FastaReader.PRODIGAL)
-        # mgs = []
-        # for f in cog_files:
-        #     path = os.path.join(tmp_mg_res, f)
-        #     header = reader.read_raw_file(open(path, 'r'))
-        #     contigs = [c.contig_pure for c in header]
-        #     mg = MarkerGene(f.split('.')[0])
-        #     mg.add_contigs(contigs)
-        #     mgs.append(mg)
-        #
-        # if self.DEBUG:
-        #     print(f"[DEBUG] MG[0]:{mgs[0]}")
-        #
-        # # Read in Data from Fasta to get all Contigs
-        # reader = FastaReader(FastaReader.MYCC)
-        # header = reader.read_raw_file(open(fasta_path, 'r'))
-        # contigs = np.empty(len(header), dtype=Contig)
-        # i_idx = 0
-        # # TODO is there a better method? faster?
-        # for h in header:
-        #     c = Contig(h.contig)
-        #     for mg in mgs:
-        #         if mg.__contains__(h.contig):
-        #             c.add_mg(mg.MG_name)
-        #     contigs[i_idx] = c
-        #     i_idx += 1
-        # print(contigs[0])
-        # print(len(contigs))
-        # self.CONTIGS = contigs
-        #
-        # # TODO: stop spinner here
-
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
         # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
