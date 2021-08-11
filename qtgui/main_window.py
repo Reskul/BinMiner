@@ -65,6 +65,8 @@ class Window(QMainWindow):
             self.DEFAULTPATH = self.DEFAULTPATH_WIN
         self.OS = os
 
+        self.is_processing_fasta = False
+
         # General Settings
         self.main_widget = QWidget()
         self.setWindowTitle("Sequence Mining Tool")
@@ -110,13 +112,16 @@ class Window(QMainWindow):
         # Loading Screen ----------
         # Custom Widget by https://github.com/snowwlex/QtWaitingSpinner/blob/master/README.md
         # Py-version: https://github.com/z3ntu/QtWaitingSpinner
-        self.loading_spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
-        self.spacer_1 = QSpacerItem(self.loading_spinner.sizeHint().width(), self.loading_spinner.sizeHint().height())
-        spacer_0 = QSpacerItem(self.loading_spinner.sizeHint().width(), self.loading_spinner.sizeHint().height())
-        self.read_in_layout.addWidget(self.loading_spinner)
-        self.read_in_layout.addSpacerItem(self.spacer_1)
+        self.loading_spinner1 = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
+        self.loading_spinner2 = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=False)
+        self.spacer_0 = QSpacerItem(self.loading_spinner1.sizeHint().width(), self.loading_spinner1.sizeHint().height())
+        self.spacer_1 = QSpacerItem(self.loading_spinner2.sizeHint().width(), self.loading_spinner2.sizeHint().height())
 
-        self.fasta_in_layout.addSpacerItem(spacer_0)
+        self.fasta_in_layout.addWidget(self.loading_spinner1)
+        self.fasta_in_layout.addSpacerItem(self.spacer_0)
+
+        self.read_in_layout.addWidget(self.loading_spinner2)
+        self.read_in_layout.addSpacerItem(self.spacer_1)
 
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
@@ -178,7 +183,7 @@ class Window(QMainWindow):
             # This could take several seconds --> Loading Symbol is shown and UI deactivated
             self.data_path_le.setText(path)
             self.read_in_layout.removeItem(self.spacer_1)
-            self.loading_spinner.start()
+            self.loading_spinner2.start()
 
             runnable = LoadingNpyRunnable(path, self, self.DEBUG)
             QThreadPool.globalInstance().start(runnable)
@@ -186,26 +191,27 @@ class Window(QMainWindow):
     def select_fasta_file(self):
         """Select Fasta File for fundamental Data input and start pipe"""
         # TODO: change to "Start Marker Gene calculation"
-        fasta_path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Fasta File', self.DEFAULTPATH,
-                                                    'Fasta Files (*.fasta)')
-        self.fasta_path_le.setText(fasta_path)
+        if not self.is_processing_fasta:
+            fasta_path, _ = QFileDialog.getOpenFileName(self.main_widget, 'Open Fasta File', self.DEFAULTPATH,
+                                                        'Fasta Files (*.fasta)')
+            self.fasta_path_le.setText(fasta_path)
 
-        runnable = FastaLoadingRunnable(fasta_path, self, self.prodigal_path, self.fetchMG_path, self.DATADIR,
-                                        self.DEBUG)
-        QThreadPool.globalInstance().start(runnable)
+            runnable = FastaLoadingRunnable(fasta_path, self, self.prodigal_path, self.fetchMG_path, self.DATADIR,
+                                            self.DEBUG)
+            QThreadPool.globalInstance().start(runnable)
 
     def create_menubar(self):
         """Creates Actions and the Menubar to show them in"""
         set_paths_act = QAction("Set Paths", self)
         set_paths_act.triggered.connect(self.start_paths_dialog)
 
-        use_existing_mgs = QAction("Use Existing Files", self)
-        use_existing_mgs.triggered.connect(self.process_markergenes)
+        # use_existing_mgs = QAction("Use Existing Files", self)
+        # use_existing_mgs.triggered.connect(self.process_markergenes)
 
         menubar = self.menuBar()
         settings_menu = QMenu("&Settings", self)
         settings_menu.addAction(set_paths_act)
-        settings_menu.addAction(use_existing_mgs)
+        # settings_menu.addAction(use_existing_mgs)
 
         menubar.addMenu(settings_menu)
         help_menu = menubar.addMenu("Help")
@@ -221,16 +227,19 @@ class Window(QMainWindow):
             print("[DEBUG] Window.set_data()")
         self.data = data
         self.selected_data = np.zeros(len(data))
-        self.loading_spinner.stop()
+        self.loading_spinner2.stop()
         self.read_in_layout.addSpacerItem(self.spacer_1)
         self.update_plot()
 
-    @pyqtSlot()
-    def protdata_ready(self):
+    @pyqtSlot(np.ndarray)
+    def protdata_ready(self, contigs):
         if self.DEBUG:
             print("[DEBUG] Window.protdata_ready()")
-        # TODO: stop spinner and show grüner haken lol
-        # TODO: in dem MG's Ordner die gefundenen MG's abchecken
+        self.loading_spinner1.stop()
+        self.fasta_in_layout.addSpacerItem(self.spacer_0)
+        # TODO: show grüner haken lol
+        self.CONTIGS = contigs
+        self.is_processing_fasta = False
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         super().closeEvent(a0)
@@ -314,45 +323,54 @@ class Window(QMainWindow):
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
             self.set_selected_cnt()
 
-    def process_markergenes(self, tmp_mg_res, tmp_fasta_res):
-        # mg_path = self.TMP_fetchMG_results_path
-        # prod_path = self.TMP_prodigal_results_path
-        mg_path = tmp_mg_res
-        fasta_path = tmp_fasta_res
-        # Find Marker Gene Files and read in to Data-Model
-        cog_files = [file for file in os.listdir(mg_path) if
-                     os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
-        if self.DEBUG:
-            print(f"[DEBUG] Anzahl: {len(cog_files)}\n{cog_files}\n")
-        reader = FastaReader(FastaReader.PRODIGAL)
-        mgs = []
-        for f in cog_files:
-            path = os.path.join(tmp_mg_res, f)
-            header = reader.read_raw_file(open(path, 'r'))
-            contigs = [c.contig_pure for c in header]
-            mg = MarkerGene(f.split('.')[0])
-            mg.add_contigs(contigs)
-            mgs.append(mg)
+    def process_markergenes(self, tmp_mg_res, tmp_fasta_path):
+        self.is_processing_fasta = True
+        self.fasta_in_layout.removeItem(self.spacer_0)
+        self.loading_spinner1.start()
+        runnable = FastaLoadingRunnable(tmp_fasta_path, self, self.prodigal_path, tmp_mg_res, self.DATADIR,
+                                        debug=self.DEBUG, only_analyze=True)
+        QThreadPool.globalInstance().start(runnable)
 
-        if self.DEBUG:
-            print(f"[DEBUG] MG[0]:{mgs[0]}")
-
-        # Read in Data from Fasta to get all Contigs
-        reader = FastaReader(FastaReader.MYCC)
-        header = reader.read_raw_file(open(fasta_path, 'r'))
-        contigs = np.empty(len(header), dtype=Contig)
-        i_idx = 0
-        # TODO is there a better method? faster?
-        for h in header:
-            c = Contig(h.contig)
-            for mg in mgs:
-                if mg.__contains__(h.contig):
-                    c.add_mg(mg.MG_name)
-            contigs[i_idx] = c
-            i_idx += 1
-        print(contigs[0])
-        print(len(contigs))
-        self.CONTIGS = contigs
+        # # mg_path = self.TMP_fetchMG_results_path
+        # # prod_path = self.TMP_prodigal_results_path
+        # mg_path = tmp_mg_res
+        # fasta_path = tmp_fasta_res
+        # # Find Marker Gene Files and read in to Data-Model
+        # cog_files = [file for file in os.listdir(mg_path) if
+        #              os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
+        # if self.DEBUG:
+        #     print(f"[DEBUG] Anzahl: {len(cog_files)}\n{cog_files}\n")
+        # reader = FastaReader(FastaReader.PRODIGAL)
+        # mgs = []
+        # for f in cog_files:
+        #     path = os.path.join(tmp_mg_res, f)
+        #     header = reader.read_raw_file(open(path, 'r'))
+        #     contigs = [c.contig_pure for c in header]
+        #     mg = MarkerGene(f.split('.')[0])
+        #     mg.add_contigs(contigs)
+        #     mgs.append(mg)
+        #
+        # if self.DEBUG:
+        #     print(f"[DEBUG] MG[0]:{mgs[0]}")
+        #
+        # # Read in Data from Fasta to get all Contigs
+        # reader = FastaReader(FastaReader.MYCC)
+        # header = reader.read_raw_file(open(fasta_path, 'r'))
+        # contigs = np.empty(len(header), dtype=Contig)
+        # i_idx = 0
+        # # TODO is there a better method? faster?
+        # for h in header:
+        #     c = Contig(h.contig)
+        #     for mg in mgs:
+        #         if mg.__contains__(h.contig):
+        #             c.add_mg(mg.MG_name)
+        #     contigs[i_idx] = c
+        #     i_idx += 1
+        # print(contigs[0])
+        # print(len(contigs))
+        # self.CONTIGS = contigs
+        #
+        # # TODO: stop spinner here
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
@@ -380,14 +398,16 @@ class LoadingNpyRunnable(QRunnable):
 
 class FastaLoadingRunnable(QRunnable):
 
-    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug=False):
+    def __init__(self, fasta_path, called_by, prodigal_path, fetchmg_path, datadir, debug=False, only_analyze=False):
         super().__init__()
         self.path = fasta_path
         self.call = called_by
         self.prodigal = prodigal_path
         self.fetchMG = fetchmg_path
-        self.DEBUG = debug
         self.DATADIR = datadir
+
+        self.DEBUG = debug
+        self.ONLY_ANALYZE = only_analyze
 
         fasta_filename = ntpath.basename(fasta_path)
         dataset_name, filetype = fasta_filename.split('.', 1)
@@ -396,27 +416,65 @@ class FastaLoadingRunnable(QRunnable):
 
     def run(self) -> None:
         if self.DEBUG:
-            print(f"[DEBUG] FastaLoadingRunnable.run()\n{self.path}\n{self.prodigal}\n{self.fetchMG}")
+            print(
+                f"[DEBUG] FastaLoadingRunnable.run()\nOnly-Analyze:{self.ONLY_ANALYZE}\n{self.path}\n{self.prodigal}\n{self.fetchMG}")
 
-        if not os.path.exists(f"{self.DATADIR}/prodigal/"):
-            print(f"Creating {self.DATADIR}/prodigal/")
-            os.makedirs(f"{self.DATADIR}/prodigal/")
+        if not self.ONLY_ANALYZE:
 
-        completed_prodigal = subprocess.run(
-            [self.prodigal, "-a", f"{self.DATADIR}/prodigal/{self.protein_file}", "-i", self.path],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        completed_prodigal.check_returncode()
+            if not os.path.exists(f"{self.DATADIR}/prodigal/"):
+                print(f"Creating {self.DATADIR}/prodigal/")
+                os.makedirs(f"{self.DATADIR}/prodigal/")
 
-        completed_fetchmg = subprocess.run(
-            ["perl", self.fetchMG, "-d", self.path, "-o", f"{self.DATADIR}/{self.mg_output_dir}", "-m extraction",
-             f"{self.DATADIR}/prodigal/{self.protein_file}"],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        # completed_fetchmg.check_returncode()
-        self.read_mgs()
-        QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection)
+            completed_prodigal = subprocess.run(
+                [self.prodigal, "-a", f"{self.DATADIR}/prodigal/{self.protein_file}", "-i", self.path],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            completed_prodigal.check_returncode()
+
+            completed_fetchmg = subprocess.run(
+                ["perl", self.fetchMG, "-d", self.path, "-o", f"{self.DATADIR}/{self.mg_output_dir}", "-m extraction",
+                 f"{self.DATADIR}/prodigal/{self.protein_file}"],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            # completed_fetchmg.check_returncode()
+
+        contigs = self.read_mgs()
+        QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs))
 
     def read_mgs(self):
-        mg_path = f"{self.DATADIR}/{self.mg_output_dir}"
+        mg_path = os.path.join(self.DATADIR, self.mg_output_dir)
+        fasta_path = self.path
         cog_files = [file for file in os.listdir(mg_path) if
                      os.path.isfile(os.path.join(mg_path, file)) and file.endswith(".faa")]
-        print(f"Anzahl: {len(cog_files)}\n{cog_files}")
+        if self.DEBUG:
+            print(f"Anzahl: {len(cog_files)}\n{cog_files}")
+        # READ-IN Marker Genes from fetchMG results
+        reader = FastaReader(FastaReader.PRODIGAL)
+        mgs = []
+        for f in cog_files:
+            path = os.path.join(mg_path, f)
+            header = reader.read_raw_file(open(path, 'r'))
+            contigs = [c.contig_pure for c in header]
+            mg = MarkerGene(f.split('.')[0])
+            mg.add_contigs(contigs)
+            mgs.append(mg)
+
+        if self.DEBUG:
+            print(f"[DEBUG] MG[0]:\n{mgs[0]}")
+
+        # READ-IN Data from Fasta to get all existing Contigs
+        reader = FastaReader(FastaReader.MYCC)
+        header = reader.read_raw_file(open(fasta_path, 'r'))
+        contigs = np.empty(len(header), dtype=Contig)
+        i_idx = 0
+        # TODO is there a better method? faster?
+        for h in header:
+            c = Contig(h.contig)
+            for mg in mgs:
+                if mg.__contains__(h.contig):
+                    c.add_mg(mg.MG_name)
+            contigs[i_idx] = c
+            i_idx += 1
+
+        if self.DEBUG:
+            print(f"[DEBUG] Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
+
+        return contigs
