@@ -20,11 +20,20 @@ class LoadingNpyRunnable(QRunnable):
         if self.DEBUG:
             print("[DEBUG] LoadingNpyRunnable.run()", self.path)
         data_raw = np.load(self.path)
+        dir_path = ntpath.dirname(self.path)
+        dataset_name = ntpath.basename(self.path).split('_')[0]
+        access_name = "_".join((dataset_name, "access.npy"))
+        access_path = os.path.join(dir_path, access_name)
+        access_labels = np.load(access_path)
         contig_lengths = np.sum(data_raw, 1)
         x_mat = (data_raw.T / contig_lengths).T  # Norm data ??? ASK!
         data = TSNE(n_components=2).fit_transform(x_mat)  # T-SNE Data Dim reduction
-        print(np.shape(data))
-        QMetaObject.invokeMethod(self.call, "set_data", Qt.QueuedConnection, Q_ARG(type(data), data))
+        if self.DEBUG:
+            print(f"[DEBUG] Access Object:{access_labels[0]}\tType:{type(access_labels[0])}")
+            print(f"[DEBUG] Datenpunkte:{np.shape(data)}")
+            print(f"[DEBUG] Access Object:{access_labels[0]}")
+        QMetaObject.invokeMethod(self.call, "set_data", Qt.QueuedConnection, Q_ARG(type(data), data),
+                                 Q_ARG(type(access_labels), access_labels))
 
 
 class FastaLoadingRunnable(QRunnable):
@@ -71,8 +80,9 @@ class FastaLoadingRunnable(QRunnable):
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()
 
-        contigs = self.read_mgs()
-        QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs))
+        contigs, mgs = self.read_mgs()
+        QMetaObject.invokeMethod(self.call, "protdata_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
+                                 Q_ARG(type(mgs), mgs))
 
     def read_mgs(self):
         mg_path = os.path.join(self.DATADIR, self.mg_output_dir)
@@ -121,7 +131,9 @@ class FastaLoadingRunnable(QRunnable):
             i_idx += 1
 
         if self.DEBUG:
-            print(f"[DEBUG] Contig Example: {contigs[0]}")
+            print(f"[DEBUG] Contig Example: {contigs[0]}\t{type(contigs[0])}")
             print(f"[DEBUG] Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
 
-        return contigs
+        mgs = np.array(mgs)
+
+        return contigs, mgs

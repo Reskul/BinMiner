@@ -33,8 +33,10 @@ class Window(QMainWindow):
 
     data_path = None
     data = None
+    access = None
 
     CONTIGS = None
+    MGS = None
 
     selected_data = None
     selected_nbr = 0
@@ -61,7 +63,7 @@ class Window(QMainWindow):
             self.DEFAULTPATH = self.DEFAULTPATH_WIN
         self.OS = os
 
-        self.analyze_widget = BinInfoDialog(self, self.DEBUG)
+        self.analyze_widget = BinInfoDialog(self, debug=self.DEBUG)
 
         self.is_processing_fasta = False
 
@@ -220,24 +222,27 @@ class Window(QMainWindow):
         dialog = PathsDialog(self, self.DEFAULTPATH, self.cfg, debug=self.DEBUG)
         dialog.show()
 
-    @pyqtSlot(np.ndarray)
-    def set_data(self, data):
+    @pyqtSlot(np.ndarray, np.ndarray)
+    def set_data(self, data, access):
         if self.DEBUG:
             print("[DEBUG] Window.set_data()")
         self.data = data
+        self.access = access
         self.selected_data = np.zeros(len(data))
         self.loading_spinner2.stop()
         self.read_in_layout.addSpacerItem(self.spacer_1)
         self.update_plot()
 
-    @pyqtSlot(np.ndarray)
-    def protdata_ready(self, contigs):
+    @pyqtSlot(np.ndarray, np.ndarray)
+    def protdata_ready(self, contigs, mgs):
         if self.DEBUG:
             print("[DEBUG] Window.protdata_ready()")
         self.loading_spinner1.stop()
         self.fasta_in_layout.addSpacerItem(self.spacer_0)
         # TODO: show grüner haken lol
         self.CONTIGS = contigs
+        self.MGS = mgs
+        self.analyze_widget.set_contigs_and_markergenes(contigs, mgs)
         self.is_processing_fasta = False
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -313,13 +318,13 @@ class Window(QMainWindow):
                 print("Nbr of found paths:", len(path_list))
                 print(contained[0], np.shape(contained), '\n', np.shape(self.data))
             # TODO: Maybe use the contained array directly als self.selected_data
-            self.selected_data = np.empty(np.shape(contained))
+            self.selected_data = np.empty(np.shape(contained), dtype=bool)
             for i in range(len(contained)):
                 if contained[i]:
-                    self.selected_data[i] = 1
+                    self.selected_data[i] = True
                     # self.selected_data = np.hstack(self.selected_data, self.data[i])  # -> not useful because processed data is not fixed to fasta contigs
                 else:
-                    self.selected_data[i] = 0
+                    self.selected_data[i] = False
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
             self.analyze_widget.update_selected(self.selected_data)
             self.set_selected_cnt()

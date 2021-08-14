@@ -1,7 +1,9 @@
 import ntpath
+import numpy as np
 
 from PyQt5.QtWidgets import *
 from cfg import *
+from fasta import Contig
 
 
 class PathsDialog(QDialog):
@@ -196,18 +198,71 @@ class PathsDialog(QDialog):
 
 
 class BinInfoDialog(QDialog):
-    def __init__(self, parent: QMainWindow, selected=None, debug=False):
+    def __init__(self, parent: QMainWindow, selected: np.ndarray = None, contigs=None, mgs=None, debug=False):
         super().__init__(parent)
         self.setWindowTitle("Selected Bin")
-        self.DEBUG = False
-        self.data = selected
+        self.DEBUG = debug
+        self.parent = parent
+        self.selected = selected
+        self.contigs = contigs
+        self.mgs = mgs
+        self.mg_dict = {}
+        self.sel_contigs = None
 
         self.update_gui()
 
-    def update_selected(self, selected):
-        self.data = selected
+    def update_selected(self, selected: np.ndarray):
+        self.selected = selected
+        if self.contigs is not None and self.mgs is not None:
+            self.find_selected_contigs()
+
         self.update_gui()
+
+    def set_contigs(self, contigs):
+        self.contigs = contigs
+        if self.selected is not None and self.mgs is not None:
+            self.find_selected_contigs()
+
+    def set_markergenes(self, mgs):
+        self.mgs = mgs
+        if self.DEBUG:
+            print(f"[DEBUG] Len MGS:{len(mgs)}")
+        # form into dictionary
+        for i_idx in range(len(mgs)):
+            self.mg_dict[mgs[i_idx]] = i_idx
+        if self.selected is not None and self.contigs is not None:
+            self.find_selected_contigs()
+
+    def set_contigs_and_markergenes(self, contigs, mgs):
+        self.contigs = contigs
+        self.set_markergenes(mgs)
+
+    def find_selected_contigs(self):
+        if self.selected is not None:
+            labels = self.parent.access[self.selected]  # TODO not workiung
+            if self.DEBUG:
+                print(f"[DEBUG] Labels_len:{len(labels)}\tSelected_len:{sum(self.selected)}")
+            # TODO is there a better way? --> only doin this because contig length and npy data length is not the same
+            contigs = np.empty(len(labels), dtype=Contig)
+            for i in range(len(labels)):
+                for c in self.contigs:
+                    if labels[i] == c.REAL_name:
+                        contigs[i] = c
+                # TODO: TOOOO SLOW!
+            if self.DEBUG:
+                print(f"[DEBUG] Selected Contigs[0]:{contigs[0]}")
+
+            self.sel_contigs = contigs
+
+    def show(self) -> None:
+        if self.contigs is not None and self.mgs is not None:
+            super().show()
+        elif self.DEBUG:
+            print(f"[ERROR] Something is missing. You need to insert Contigs ans Markergenes first.")
 
     def update_gui(self):
-        if self.data and self.isVisible():
+        if self.selected is not None and self.isVisible():
+            data = self.parent.data[self.selected]  # TODO not working
+            if self.DEBUG:
+                print(f"[DEBUG] data_len:{len(data)}\tselected_len:{sum(self.selected)}")
             pass
