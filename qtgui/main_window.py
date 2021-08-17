@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, pyqtSlot, QThreadPool
 from matplotlib import patches
@@ -47,21 +48,21 @@ class Window(QMainWindow):
     bw = 1
     contours = 25
 
-    def __init__(self, x: int, y: int, w: int, h: int, os: str, cfg: Configurator = None, parent=None):
+    def __init__(self, x: int, y: int, w: int, h: int, operating_system: str, cfg: Configurator = None, parent=None):
         super().__init__(parent)
         if cfg:
             self.cfg = cfg
-        if os == 'Linux':
-            self.DEFAULTPATH = self.DEFAULTPATH_LINUX
+        if operating_system == 'Linux':
+            self.DEFAULTPATH = os.path.expanduser(self.DEFAULTPATH_LINUX)
             if self.cfg:
                 self.prodigal_path = self.cfg.read(self.cfg.PRODIGAL_KEY)
                 self.fetchMG_path = self.cfg.read(self.cfg.FETCHMG_KEY)
                 # self.DATADIR = self.cfg.read(self.cfg.DATA_KEY)
                 self.DATADIR = self.cfg.homepath
 
-        elif os == 'Windows':
+        elif operating_system == 'Windows':
             self.DEFAULTPATH = self.DEFAULTPATH_WIN
-        self.OS = os
+        self.OS = operating_system
 
         self.analyze_widget = BinInfoDialog(self, debug=self.DEBUG)
 
@@ -344,6 +345,7 @@ class Window(QMainWindow):
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
         self.analyze_widget.update_selected(self.selected_data)
-        self.analyze_widget.show()
+        if not self.analyze_widget.isVisible():
+            self.analyze_widget.show()
         # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
         pass
