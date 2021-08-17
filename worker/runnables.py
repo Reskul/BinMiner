@@ -25,6 +25,7 @@ class LoadingNpyRunnable(QRunnable):
         access_name = "_".join((dataset_name, "access.npy"))
         access_path = os.path.join(dir_path, access_name)
         access_labels = np.load(access_path)
+
         contig_lengths = np.sum(data_raw, 1)
         x_mat = (data_raw.T / contig_lengths).T  # Norm data ??? ASK!
         data = TSNE(n_components=2).fit_transform(x_mat)  # T-SNE Data Dim reduction
