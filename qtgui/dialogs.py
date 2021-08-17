@@ -207,19 +207,56 @@ class BinInfoDialog(QDialog):
         self.contigs = contigs
         self.mgs = mgs
         self.mg_dict = {}
+        self.count_arr = np.array([])
         self.sel_contigs = None
 
+        self.completeness_nbr_lbl = None
+        self.containment_nbr_lbl = None
+
+        self.init_gui()
+
+    def init_gui(self):
+        numbers_gb = QGroupBox()
+        completeness_lbl = QLabel("Completeness:")
+        self.completeness_nbr_lbl = QLabel()
+
+        containment_lbl = QLabel("Completeness:")
+        self.containment_nbr_lbl = QLabel()
+
+        form_layout = QFormLayout()
+        form_layout.addRow(completeness_lbl, self.completeness_nbr_lbl)
+        form_layout.addRow(containment_lbl, self.containment_nbr_lbl)
+
+        numbers_gb.setLayout(form_layout)
+
+        # histogramm groupbox
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(numbers_gb)
+
+        self.setLayout(hbox)
         self.update_gui()
 
     def update_selected(self, selected: np.ndarray):
         self.selected = selected
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.update_selected()")
+            i = 0
+            while i < len(selected):
+                print(f"\t{selected[i]} {selected[i + 1]} {selected[i + 2]} {selected[i + 3]}")
+                i += 4
         if self.contigs is not None and self.mgs is not None:
             self.find_selected_contigs()
 
-        self.update_gui()
+        if self.isVisible():
+            self.update_gui()
 
     def set_contigs(self, contigs):
         self.contigs = contigs
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.set_contigs()\n"
+                  f"\tContigs:{contigs}")
+
         if self.selected is not None and self.mgs is not None:
             self.find_selected_contigs()
 
@@ -229,7 +266,11 @@ class BinInfoDialog(QDialog):
             print(f"[DEBUG] Len MGS:{len(mgs)}")
         # form into dictionary
         for i_idx in range(len(mgs)):
-            self.mg_dict[mgs[i_idx]] = i_idx
+            self.mg_dict[mgs[i_idx].MG_name] = i_idx
+        self.count_arr = np.zeros(len(mgs), dtype=int)
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.set_markergenes()\n"
+                  f"\tMG_Dictionary:{self.mg_dict}")
         if self.selected is not None and self.contigs is not None:
             self.find_selected_contigs()
 
@@ -239,24 +280,49 @@ class BinInfoDialog(QDialog):
 
     def find_selected_contigs(self):
         if self.selected is not None:
-            labels = self.parent.access[self.selected]  # TODO not workiung
+            labels = self.parent.access[self.selected]
             if self.DEBUG:
-                print(f"[DEBUG] Labels_len:{len(labels)}\tSelected_len:{sum(self.selected)}")
+                print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
+                      f"\tLabels_len:{len(labels)}\tSelected_Cnt:{sum(self.selected)}\n"
+                      f"\tLabels: {labels}"
+                      f"\tAccess_Len:{len(self.parent.access)} | Selected_Len:{len(self.selected)}")
+
             # TODO is there a better way? --> only doin this because contig length and npy data length is not the same
             contigs = np.empty(len(labels), dtype=Contig)
             for i in range(len(labels)):
                 for c in self.contigs:
                     if labels[i] == c.REAL_name:
                         contigs[i] = c
-                # TODO: TOOOO SLOW!
+                # TODO: TOOOO SLOW! --> maybe do this when reading in and sort entsprechende liste dann passned
             if self.DEBUG:
-                print(f"[DEBUG] Selected Contigs[0]:{contigs[0]}")
+                print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
+                      f" Selected Contigs[0]:{contigs[0]}")
 
             self.sel_contigs = contigs
+
+    def calc_values(self):
+        # print(f"DIGGAH {self.sel_contigs}")
+        for c in self.sel_contigs:
+            c_mgs = c.mgs
+            # print(f"LOL {c}")
+            for mg in c_mgs:
+                # print(f"ROFL {mg}")
+                self.count_arr[self.mg_dict[mg]] += 1
+
+        val_greater_zero = [val > 0 for val in self.count_arr]
+        completeness = sum(val_greater_zero)
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.calc_values()\n"
+                  f"\tCounted MG's:{self.count_arr}\n"
+                  f"\tValues greater than 0:{val_greater_zero}\n"
+                  f"\tCompleteness:{completeness}")
+        # completeness = sum([val > 0 for val in self.count_arr])
+        return completeness
 
     def show(self) -> None:
         if self.contigs is not None and self.mgs is not None:
             super().show()
+            self.update_gui()
         elif self.DEBUG:
             print(f"[ERROR] Something is missing. You need to insert Contigs ans Markergenes first.")
 
@@ -264,5 +330,10 @@ class BinInfoDialog(QDialog):
         if self.selected is not None and self.isVisible():
             data = self.parent.data[self.selected]  # TODO not working
             if self.DEBUG:
-                print(f"[DEBUG] data_len:{len(data)}\tselected_len:{sum(self.selected)}")
-            pass
+                print(f"[DEBUG] BinInfoDialog.update_gui()\n"
+                      f"\tdata_len:{len(data)}\tselected_len:{sum(self.selected)}")
+
+            completeness = self.calc_values()
+
+            self.completeness_nbr_lbl.setText(str(completeness))
+            # self.containment_nbr_lbl.setText(str(containment))
