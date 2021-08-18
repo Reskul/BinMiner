@@ -349,3 +349,10 @@ class Window(QMainWindow):
             self.analyze_widget.show()
         # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
         pass
+
+
+class ControllingWindow(QMainWindow):
+    MAINWIDGET = None
+
+    def __init__(self):
+        pass
