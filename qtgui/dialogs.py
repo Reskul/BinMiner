@@ -3,7 +3,7 @@ import numpy as np
 
 from PyQt5.QtWidgets import *
 from cfg import *
-from fasta import Contig
+from lib import Contig
 
 
 class PathsDialog(QDialog):
