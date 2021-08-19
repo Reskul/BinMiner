@@ -359,9 +359,11 @@ class ControllingWindow(QMainWindow):
     STATUS_SELECT = 1
     STATUS = STATUS_INPUT
 
-    def __init__(self, x: int, y: int, w: int, h: int, operating_system: str, cfg: Configurator = None, parent=None):
+    def __init__(self, x: int, y: int, w: int, h: int, operating_system: str, cfg: Configurator = None, parent=None,
+                 debug=False):
         super().__init__(parent)
         # GENERAL Settings ----------
+        self.DEBUG = debug
         if cfg:
             self.cfg = cfg
 
@@ -394,7 +396,7 @@ class ControllingWindow(QMainWindow):
             print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
         elif fetchmg_respath is not None:
             runnable = DataLoadingRunnable(self, contig_path, kmere_path, self.cfg.homepath, fetchmg_respath,
-                                           debug=True)
+                                           debug=self.DEBUG)
             QThreadPool.globalInstance().start(runnable)
         elif fetchmg_path is not None:
             print(f"[ERROR] Not finished this part yet ;).")
@@ -407,5 +409,5 @@ class ControllingWindow(QMainWindow):
         self.contigs = contigs
         self.mgs = mgs
         self.STATUS = self.STATUS_SELECT
-        self.select_widget = SelectGUI(datapoints, contigs, mgs)
+        self.select_widget = SelectGUI(datapoints, contigs, mgs, debug=self.DEBUG)
         self.determine_widget()
