@@ -198,17 +198,17 @@ class PathsDialog(QDialog):
 
 
 class BinInfoDialog(QDialog):
-    def __init__(self, parent: QMainWindow, selected: np.ndarray = None, contigs=None, mgs=None, debug=False):
+    def __init__(self, parent, selected: np.ndarray = None, contigs=None, mgs=None, debug=False):
         super().__init__(parent)
         self.setWindowTitle("Selected Bin")
         self.DEBUG = debug
         self.parent = parent
+        self.mg_dict = {}
         self.selected = selected
         self.contigs = contigs
-        self.mgs = mgs
-        self.mg_dict = {}
         self.count_arr = np.array([])
         self.sel_contigs = None
+        self.mgs = self.set_markergenes(mgs)
 
         self.completeness_nbr_lbl = None
         self.containment_nbr_lbl = None
@@ -261,7 +261,6 @@ class BinInfoDialog(QDialog):
             self.find_selected_contigs()
 
     def set_markergenes(self, mgs):
-        self.mgs = mgs
         if self.DEBUG:
             print(f"[DEBUG] Len MGS:{len(mgs)}")
         # form into dictionary
@@ -273,27 +272,16 @@ class BinInfoDialog(QDialog):
                   f"\tMG_Dictionary:{self.mg_dict}")
         if self.selected is not None and self.contigs is not None:
             self.find_selected_contigs()
+        return mgs
 
     def set_contigs_and_markergenes(self, contigs, mgs):
         self.contigs = contigs
-        self.set_markergenes(mgs)
+        return contigs, self.set_markergenes(mgs)
 
     def find_selected_contigs(self):
         if self.selected is not None:
-            labels = self.parent.access[self.selected]
-            if self.DEBUG:
-                print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
-                      f"\tLabels_len:{len(labels)}\tSelected_Cnt:{sum(self.selected)}\n"
-                      f"\tLabels: {labels}"
-                      f"\tAccess_Len:{len(self.parent.access)} | Selected_Len:{len(self.selected)}")
+            contigs = self.contigs[self.selected]
 
-            # TODO is there a better way? --> only doin this because contig length and npy data length is not the same
-            contigs = np.empty(len(labels), dtype=Contig)
-            for i in range(len(labels)):
-                for c in self.contigs:
-                    if labels[i] == c.REAL_name:
-                        contigs[i] = c
-                # TODO: TOOOO SLOW! --> maybe do this when reading in and sort entsprechende liste dann passned
             if self.DEBUG:
                 print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
                       f" Selected Contigs[0]:{contigs[0]}")
@@ -328,11 +316,6 @@ class BinInfoDialog(QDialog):
 
     def update_gui(self):
         if self.selected is not None and self.isVisible():
-            data = self.parent.data[self.selected]  # TODO not working
-            if self.DEBUG:
-                print(f"[DEBUG] BinInfoDialog.update_gui()\n"
-                      f"\tdata_len:{len(data)}\tselected_len:{sum(self.selected)}")
-
             completeness = self.calc_values()
 
             self.completeness_nbr_lbl.setText(str(completeness))
