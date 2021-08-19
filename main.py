@@ -27,7 +27,8 @@ if __name__ == '__main__':
     size = app.primaryScreen().size()
     x = (size.width() / 2) - (DEFAULT_WIDTH / 2)
     y = (size.height() / 2) - (DEFAULT_HEIGHT / 2)
-    mw = Window(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, operating_system, cfg=cfg)
+    # mw = Window(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, operating_system, cfg=cfg)
+    mw = ControllingWindow(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, operating_system, cfg=cfg)
     mw.show()
 
     sys.exit(app.exec())
