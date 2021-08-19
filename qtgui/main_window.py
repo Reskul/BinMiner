@@ -80,23 +80,24 @@ class Window(QMainWindow):
         file_lbl_0 = QLabel("Fasta Datensatz wählen:")
         filebrowser_btn_0 = QPushButton("Datei wählen")
         filebrowser_btn_0.clicked.connect(self.select_fasta_file)
+
         file_lbl_1 = QLabel("Pre-computed Datensatz wählen:")
         filebrowser_btn_1 = QPushButton("Datei wählen")
         filebrowser_btn_1.clicked.connect(self.select_npy_file)
+        self.data_path_le = QLineEdit()
+        self.data_path_le.setReadOnly(True)
+        self.read_in_layout = QHBoxLayout()
+        self.read_in_layout.addWidget(file_lbl_1)
+        self.read_in_layout.addWidget(self.data_path_le)
+        self.read_in_layout.addWidget(filebrowser_btn_1)
 
         self.fasta_path_le = QLineEdit()
         self.fasta_path_le.setReadOnly(True)
-        self.data_path_le = QLineEdit()
-        self.data_path_le.setReadOnly(True)
 
         self.fasta_in_layout = QHBoxLayout()
         self.fasta_in_layout.addWidget(file_lbl_0)
         self.fasta_in_layout.addWidget(self.fasta_path_le)
         self.fasta_in_layout.addWidget(filebrowser_btn_0)
-        self.read_in_layout = QHBoxLayout()
-        self.read_in_layout.addWidget(file_lbl_1)
-        self.read_in_layout.addWidget(self.data_path_le)
-        self.read_in_layout.addWidget(filebrowser_btn_1)
 
         # Data Visualization ----------
         fig = Figure()
@@ -366,25 +367,45 @@ class ControllingWindow(QMainWindow):
 
         self.setWindowTitle("Sequence Mining Tool")
         self.setGeometry(x, y, w, h)
-        #self.create_menubar()
+
+        self.contigs = None
+        self.mgs = None
 
         self.input_widget = InputGUI(cfg=cfg)
-        self.select_widget = SelectGUI()
+        self.select_widget = None
         # self.rating_dialog = BinInfoDialog()
 
+        # Loading Screen ----------
+        # Custom Widget by https://github.com/snowwlex/QtWaitingSpinner/blob/master/README.md
+        # Py-version: https://github.com/z3ntu/QtWaitingSpinner
+        self.loading_spinner = QtWaitingSpinner(self, centerOnParent=True, disableParentWhenSpinning=True)
+
         self.determine_widget()
+        # self.create_menubar()
 
     def determine_widget(self):
         if self.STATUS == self.STATUS_INPUT:
             self.setCentralWidget(self.input_widget)
-            print("centralwidget set")
         elif self.STATUS == self.STATUS_SELECT:
             self.setCentralWidget(self.select_widget)
 
-    def data_ready(self, contig_path, kmere_path, fetchmg_respath=None, prodigal_path=None, fetchmg_path=None):
+    def process_input(self, contig_path, kmere_path, fetchmg_respath=None, prodigal_path=None, fetchmg_path=None):
         if fetchmg_respath is None and fetchmg_path is None:
             print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
         elif fetchmg_respath is not None:
-            pass
+            runnable = DataLoadingRunnable(self, contig_path, kmere_path, self.cfg.homepath, fetchmg_respath,
+                                           debug=True)
+            QThreadPool.globalInstance().start(runnable)
         elif fetchmg_path is not None:
-            pass
+            print(f"[ERROR] Not finished this part yet ;).")
+
+        self.loading_spinner.start()
+
+    @pyqtSlot(np.ndarray, np.ndarray, np.ndarray)
+    def data_ready(self, contigs, mgs, datapoints):
+        self.loading_spinner.stop()
+        self.contigs = contigs
+        self.mgs = mgs
+        self.STATUS = self.STATUS_SELECT
+        self.select_widget = SelectGUI(datapoints, contigs, mgs)
+        self.determine_widget()
