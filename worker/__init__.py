@@ -1,3 +1,3 @@
 from .runnables import *
 
-__all__ = ['LoadingNpyRunnable', 'FastaLoadingRunnable']
+__all__ = ['LoadingNpyRunnable', 'FastaLoadingRunnable', 'DataLoadingRunnable']
