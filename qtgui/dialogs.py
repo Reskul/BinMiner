@@ -220,7 +220,7 @@ class BinInfoDialog(QDialog):
         completeness_lbl = QLabel("Completeness:")
         self.completeness_nbr_lbl = QLabel()
 
-        containment_lbl = QLabel("Completeness:")
+        containment_lbl = QLabel("Contamination:")
         self.containment_nbr_lbl = QLabel()
 
         form_layout = QFormLayout()
@@ -241,11 +241,9 @@ class BinInfoDialog(QDialog):
         self.selected = selected
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.update_selected()")
-            i = 0
-            while i < len(selected):
-                print(f"\t{selected[i]} {selected[i + 1]} {selected[i + 2]} {selected[i + 3]}")
-                i += 4
+
         if self.contigs is not None and self.mgs is not None:
+            self.count_arr = np.zeros(len(self.mgs), dtype=int)
             self.find_selected_contigs()
 
         if self.isVisible():
@@ -298,14 +296,15 @@ class BinInfoDialog(QDialog):
                 self.count_arr[self.mg_dict[mg]] += 1
 
         val_greater_zero = [val > 0 for val in self.count_arr]
-        completeness = sum(val_greater_zero)
+        completeness = sum(val_greater_zero) / len(self.mgs)
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.calc_values()\n"
                   f"\tCounted MG's:{self.count_arr}\n"
                   f"\tValues greater than 0:{val_greater_zero}\n"
                   f"\tCompleteness:{completeness}")
         # completeness = sum([val > 0 for val in self.count_arr])
-        return completeness
+        contamination = sum([val > 1 for val in self.count_arr]) / len(self.mgs)  # TODO use correct calculation
+        return completeness, contamination
 
     def show(self) -> None:
         if self.contigs is not None and self.mgs is not None:
@@ -316,7 +315,7 @@ class BinInfoDialog(QDialog):
 
     def update_gui(self):
         if self.selected is not None and self.isVisible():
-            completeness = self.calc_values()
+            completeness, contamination = self.calc_values()
 
             self.completeness_nbr_lbl.setText(str(completeness))
-            # self.containment_nbr_lbl.setText(str(containment))
+            self.containment_nbr_lbl.setText(str(contamination))
