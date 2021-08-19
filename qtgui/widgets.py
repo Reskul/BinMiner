@@ -1,11 +1,11 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from cfg import *
-from worker import *
+from .main_window import ControllingWindow
 
 
 class InputGUI(QWidget):
-    def __init__(self, parent=None, cfg: Configurator = None):
+    def __init__(self, parent: ControllingWindow = None, cfg: Configurator = None):
         super().__init__(parent)
         # INSTANCE VARIABLES
         self.config = cfg
@@ -31,7 +31,7 @@ class InputGUI(QWidget):
 
         # "Next" Button
         next_btn = QPushButton("Next")
-        next_btn.clicked.connect()
+        next_btn.clicked.connect(self.next_clicked)
 
         # FINALIZE GUI
         form_gbox.setLayout(f_layout)
@@ -50,3 +50,11 @@ class InputGUI(QWidget):
                                                 QFileDialog.ShowDirsOnly)
         self.kmere_dataset_le.setText(path)
         self.kmere_dataset_path = path
+
+    def next_clicked(self):
+        self.parent().data_ready(self.contig_dataset_path, self.kmere_dataset_path)
+
+
+class SelectGUI(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
