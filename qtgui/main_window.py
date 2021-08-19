@@ -11,6 +11,7 @@ from skimage.feature import peak_local_max
 
 from lib import *
 from .dialogs import *
+from .widgets import *
 from cfg import Configurator
 from worker import *
 
@@ -352,7 +353,36 @@ class Window(QMainWindow):
 
 
 class ControllingWindow(QMainWindow):
-    MAINWIDGET = None
+    TAG = "ControllingWindow"
+    STATUS_INPUT = 0
+    STATUS_SELECT = 1
+    STATUS = STATUS_INPUT
 
-    def __init__(self):
-        pass
+    def __init__(self, x: int, y: int, w: int, h: int, operating_system: str, cfg: Configurator = None, parent=None):
+        super().__init__(parent)
+        # GENERAL Settings ----------
+        if cfg:
+            self.cfg = cfg
+
+        self.setWindowTitle("Sequence Mining Tool")
+        self.setGeometry(x, y, w, h)
+        self.create_menubar()
+
+        self.input_widget = InputGUI()
+        self.select_widget = SelectGUI()
+
+        self.determine_widget()
+
+    def determine_widget(self):
+        if self.STATUS == self.STATUS_INPUT:
+            self.setCentralWidget(self.input_widget)
+        elif self.STATUS == self.STATUS_SELECT:
+            self.setCentralWidget(self.select_widget)
+
+    def data_ready(self, contig_path, kmere_path, fetchmg_respath=None, prodigal_path=None, fetchmg_path=None):
+        if fetchmg_respath is None and fetchmg_path is None:
+            print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
+        elif fetchmg_respath is not None:
+            pass
+        elif fetchmg_path is not None:
+            pass
