@@ -249,7 +249,7 @@ class BinInfoDialog(QDialog):
         if self.isVisible():
             self.update_gui()
 
-    def set_contigs(self, contigs):
+    def set_contigs(self, contigs: Contig):
         self.contigs = contigs
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.set_contigs()\n"
