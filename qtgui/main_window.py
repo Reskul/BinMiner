@@ -366,16 +366,18 @@ class ControllingWindow(QMainWindow):
 
         self.setWindowTitle("Sequence Mining Tool")
         self.setGeometry(x, y, w, h)
-        self.create_menubar()
+        #self.create_menubar()
 
-        self.input_widget = InputGUI()
+        self.input_widget = InputGUI(cfg=cfg)
         self.select_widget = SelectGUI()
+        # self.rating_dialog = BinInfoDialog()
 
         self.determine_widget()
 
     def determine_widget(self):
         if self.STATUS == self.STATUS_INPUT:
             self.setCentralWidget(self.input_widget)
+            print("centralwidget set")
         elif self.STATUS == self.STATUS_SELECT:
             self.setCentralWidget(self.select_widget)
 
