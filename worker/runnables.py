@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
 
-from fasta import *
+from lib import *
 
 
 class LoadingNpyRunnable(QRunnable):
