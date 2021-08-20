@@ -5,6 +5,9 @@ from PyQt5.QtWidgets import *
 from cfg import *
 from lib import Contig
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
 
 class PathsDialog(QDialog):
     OS = None
@@ -198,6 +201,10 @@ class PathsDialog(QDialog):
 
 
 class BinInfoDialog(QDialog):
+    STURGES = 0
+    SCOTT = 1
+    FREEDMAN_DIACONIS = 2
+
     def __init__(self, parent, selected: np.ndarray = None, contigs=None, mgs=None, debug=False):
         super().__init__(parent)
         self.setWindowTitle("Selected Bin")
@@ -213,10 +220,12 @@ class BinInfoDialog(QDialog):
         self.completeness_nbr_lbl = None
         self.containment_nbr_lbl = None
 
+        self.ax = None
+
         self.init_gui()
 
     def init_gui(self):
-        numbers_gb = QGroupBox()
+        numbers_gbox = QGroupBox("Statistics")
         completeness_lbl = QLabel("Completeness:")
         self.completeness_nbr_lbl = QLabel()
 
@@ -227,12 +236,25 @@ class BinInfoDialog(QDialog):
         form_layout.addRow(completeness_lbl, self.completeness_nbr_lbl)
         form_layout.addRow(containment_lbl, self.containment_nbr_lbl)
 
-        numbers_gb.setLayout(form_layout)
+        numbers_gbox.setLayout(form_layout)
 
         # histogramm groupbox
+        histo_gbox = QGroupBox("Coverage Histogram")
+        figure = Figure(figsize=(16, 9), dpi=30)
+        canvas = FigureCanvas(figure)
+        save_btn = QPushButton("Save as")
+
+        self.ax = figure.add_subplot(111)
+        # canvas.setSizePolicy()
+
+        grid = QGridLayout()
+        grid.addWidget(canvas, 0, 0, 1, 3)
+        grid.addWidget(save_btn, 1, 2)
+        histo_gbox.setLayout(grid)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(numbers_gb)
+        hbox.addWidget(numbers_gbox)
+        hbox.addWidget(histo_gbox)
 
         self.setLayout(hbox)
         self.update_gui()
@@ -288,12 +310,14 @@ class BinInfoDialog(QDialog):
 
     def calc_values(self):
         # print(f"DIGGAH {self.sel_contigs}")
+        coverages = []
         for c in self.sel_contigs:
             c_mgs = c.mgs
             # print(f"LOL {c}")
             for mg in c_mgs:
                 # print(f"ROFL {mg}")
                 self.count_arr[self.mg_dict[mg]] += 1
+            coverages.append(c.coverage)
 
         val_greater_zero = [val > 0 for val in self.count_arr]
         completeness = sum(val_greater_zero) / len(self.mgs)
@@ -304,7 +328,26 @@ class BinInfoDialog(QDialog):
                   f"\tCompleteness:{completeness}")
         # completeness = sum([val > 0 for val in self.count_arr])
         contamination = sum([val > 1 for val in self.count_arr]) / len(self.mgs)  # TODO use correct calculation
-        return completeness, contamination
+        coverages = np.array(coverages)
+        return completeness, contamination, coverages
+
+    def update_histo(self, cov, bin_rule=0):
+        n = len(cov)
+        sigma = np.std(cov)
+        q3, q1 = np.percentile(cov, [75, 25])
+        print(q1, q3)
+        if bin_rule == 0:
+            # Sturges-Rule for Bin number
+            bins = 1 + np.log2(n)
+        elif bin_rule == 1:
+            # Scott-Rule
+            bins = (3.49 * sigma) / np.cbrt(n)  # std:StandardAbweichung Sigma | cbrt:cubicroot
+        elif bin_rule == 2:
+            bins = (2 * (q3 - q1)) / np.cbrt(n)
+        else:
+            bins = n / 5
+        bins = int(np.round(bins))
+        self.ax.hist(cov, bins=bins)
 
     def show(self) -> None:
         if self.contigs is not None and self.mgs is not None:
@@ -315,7 +358,8 @@ class BinInfoDialog(QDialog):
 
     def update_gui(self):
         if self.selected is not None and self.isVisible():
-            completeness, contamination = self.calc_values()
+            completeness, contamination, coverages = self.calc_values()
 
             self.completeness_nbr_lbl.setText(str(completeness))
             self.containment_nbr_lbl.setText(str(contamination))
+            self.update_histo(coverages, self.STURGES)
