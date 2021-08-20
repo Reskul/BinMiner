@@ -225,6 +225,9 @@ class DataLoadingRunnable(QRunnable):
             for mg in mgs:
                 if mg.__contains__(h.contig):
                     c.add_mg(mg.MG_name)
+            for entry in coverage_tup:  # TODO Again, too slow. better way?
+                if c.CONTIG_name == entry[0]:
+                    c.coverage = entry[1]
             contigs[i_idx] = c
             i_idx += 1
 
@@ -256,12 +259,12 @@ class DataLoadingRunnable(QRunnable):
         return data
 
     def read_coverage(self, cov_file):
-
         lines = cov_file.read().split('\n')
+        lines_nbr = len(lines)
+        lines = lines[:lines_nbr - 1]
         collection = []
         for l in lines:
-            contig, cov = l.split('\t')
-            tup = (contig,cov)
+            res = l.split('\t')
+            tup = (res[0], float(res[1]))
             collection.append(tup)
-
         return collection
