@@ -28,6 +28,7 @@ class Contig:
         self.CONTIG_name = name
         self.mgs = []
         self.REAL_name = real_name
+        self.coverage = None
 
     def __str__(self):
         return f"{self.CONTIG_name}/{self.REAL_name}:{self.mgs}"
