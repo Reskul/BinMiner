@@ -155,6 +155,7 @@ class DataLoadingRunnable(QRunnable):
 
         dataset_name = ntpath.basename(self.contig_path)
         self.contig_filepath = os.path.join(self.contig_path, f"{dataset_name}.fasta")
+        self.contig_cov_filepath = os.path.join(self.contig_path, f"{dataset_name}.depth.txt")
 
         if not self.create:
             self.fetchmg_respath = args[4]
@@ -211,6 +212,11 @@ class DataLoadingRunnable(QRunnable):
         # READ-IN Data from Fasta to get all existing Contigs ----------
         reader = FastaReader(FastaReader.MYCC)
         header = reader.read_raw_file(open(self.contig_filepath, 'r'))
+
+        coverage_file = open(self.contig_cov_filepath, 'r')
+        coverage_tup = self.read_coverage(coverage_file)
+        # TODO WEITER MACHEN
+
         contigs = np.empty(len(header), dtype=Contig)
         i_idx = 0
         # TODO is there a better method? faster?
@@ -239,7 +245,7 @@ class DataLoadingRunnable(QRunnable):
         # access_name = "_".join((dataset_name, "access.npy"))
         # access_path = os.path.join(dir_path, access_name)
         # access_labels = np.load(access_path)
-
+        # TODO: Contig Längen mit den Counts abgleichen
         contig_lengths = np.sum(data_raw, 1)
         x_mat = (data_raw.T / contig_lengths).T  # Norm data ??? ASK!
         data = TSNE(n_components=2).fit_transform(x_mat)  # T-SNE Data Dim reduction
@@ -248,3 +254,14 @@ class DataLoadingRunnable(QRunnable):
             print(f"[DEBUG] Datenpunkte:{np.shape(data)}")
             # print(f"[DEBUG] Access Object:{access_labels[0]}")
         return data
+
+    def read_coverage(self, cov_file):
+
+        lines = cov_file.read().split('\n')
+        collection = []
+        for l in lines:
+            contig, cov = l.split('\t')
+            tup = (contig,cov)
+            collection.append(tup)
+
+        return collection
