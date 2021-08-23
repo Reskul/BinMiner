@@ -86,8 +86,9 @@ class FastaReader:
         data = ma_file.read()
         data = data.split(">")[1:]
         seq_cnt = len(data)
-        seq_vec = np.empty(seq_cnt, dtype=FastaHeaderUniProtKB)
+        seq_vec = None
         if self.origin == self.UNIPROTKB:
+            seq_vec = np.empty(seq_cnt, dtype=FastaHeaderUniProtKB)
             i_idx = 0
             for item in data:
                 seq_fasta = item.split("\n")
