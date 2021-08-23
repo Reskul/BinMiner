@@ -215,7 +215,6 @@ class DataLoadingRunnable(QRunnable):
 
         coverage_file = open(self.contig_cov_filepath, 'r')
         coverage_tup = self.read_coverage(coverage_file)
-        # TODO WEITER MACHEN
 
         contigs = np.empty(len(header), dtype=Contig)
         i_idx = 0
@@ -262,9 +261,11 @@ class DataLoadingRunnable(QRunnable):
         lines = cov_file.read().split('\n')
         lines_nbr = len(lines)
         lines = lines[:lines_nbr - 1]
+
         collection = []
         for l in lines:
             res = l.split('\t')
-            tup = (res[0], float(res[1]))
+            tup = (res[0], [float(val) for val in res[1:]])
             collection.append(tup)
+
         return collection
