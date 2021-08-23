@@ -326,6 +326,7 @@ class SelectGUI(QWidget):
             last = len(path_list) - 1
             contained = path_list[last].contains_points(self.data)
             if self.DEBUG:
+                print("[DEBUG] SelectGUI.on_mpl_press()")
                 print("Nbr of found paths:", len(path_list))
                 print(contained[0], np.shape(contained), '\n', np.shape(self.data))
             # TODO: Maybe use the contained array directly als self.selected_data
