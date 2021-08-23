@@ -318,6 +318,7 @@ class BinInfoDialog(QDialog):
                 # print(f"ROFL {mg}")
                 self.count_arr[self.mg_dict[mg]] += 1
             coverages.append(c.coverage)
+            # ToDo add option for multidim coverages
 
         val_greater_zero = [val > 0 for val in self.count_arr]
         completeness = sum(val_greater_zero) / len(self.mgs)
@@ -327,7 +328,14 @@ class BinInfoDialog(QDialog):
                   f"\tValues greater than 0:{val_greater_zero}\n"
                   f"\tCompleteness:{completeness}")
         # completeness = sum([val > 0 for val in self.count_arr])
-        contamination = sum([val > 1 for val in self.count_arr]) / len(self.mgs)  # TODO use correct calculation
+        max_cnt = max(self.count_arr)
+        i_max = 2
+        contamination = 0
+        while i_max <= max_cnt:
+            existing = sum([val == i_max for val in self.count_arr])
+            contamination += existing * (i_max - 1)
+        contamination = contamination / len(self.mgs)
+
         coverages = np.array(coverages)
         return completeness, contamination, coverages
 
@@ -343,6 +351,7 @@ class BinInfoDialog(QDialog):
             # Scott-Rule
             bins = (3.49 * sigma) / np.cbrt(n)  # std:StandardAbweichung Sigma | cbrt:cubicroot
         elif bin_rule == 2:
+            # Freedman-Diaconis Rule
             bins = (2 * (q3 - q1)) / np.cbrt(n)
         else:
             bins = n / 5
