@@ -72,7 +72,7 @@ class InputGUI(QWidget):
         # K-Mere Data ----------
         self.kmere_dataset_le = QFileInputLine()
         self.kmere_dataset_le.clicked.connect(self.km_clicked)
-        f_layout.addRow(QLabel("K-Mere Dataset"), self.kmere_dataset_le)
+        f_layout.addRow(QLabel("K-Mere Data File"), self.kmere_dataset_le)
 
         # Radiobutton's Select next Section
         # o FetchMG Ergebnisse | o Selber erstellen
