@@ -1,5 +1,8 @@
 import ntpath
 import numpy as np
+import os
+from datetime import date
+from datetime import datetime
 
 from PyQt5.QtWidgets import *
 from cfg import *
@@ -217,9 +220,12 @@ class BinInfoDialog(QDialog):
         self.sel_contigs = None
         self.mgs = self.set_markergenes(mgs)
 
+        self.cut_quartiles = False
+
         self.completeness_nbr_lbl = None
         self.containment_nbr_lbl = None
 
+        self.figure = None
         self.ax = None
 
         self.init_gui()
@@ -240,16 +246,21 @@ class BinInfoDialog(QDialog):
 
         # histogramm groupbox
         histo_gbox = QGroupBox("Coverage Histogram")
-        figure = Figure(figsize=(16, 9), dpi=30)
-        canvas = FigureCanvas(figure)
-        save_btn = QPushButton("Save as")
+        self.figure = Figure(figsize=(16, 9), dpi=45)
+        self.ax = self.figure.add_subplot(111)
+        canvas = FigureCanvas(self.figure)
+        save_btn = QPushButton("Save As")
+        cut_btn = QPushButton("Cut Quartiles")
+        self.cut_ckbox = QCheckBox("Cut Quartiles")
 
-        self.ax = figure.add_subplot(111)
-        # canvas.setSizePolicy()
+        save_btn.clicked.connect(self.save_clicked)
+        cut_btn.clicked.connect(self.cut_clicked)
+        self.cut_ckbox.clicked.connect(self.cut_clicked)
 
         grid = QGridLayout()
         grid.addWidget(canvas, 0, 0, 1, 3)
         grid.addWidget(save_btn, 1, 2)
+        grid.addWidget(self.cut_ckbox, 1, 0)
         histo_gbox.setLayout(grid)
 
         hbox = QHBoxLayout()
@@ -259,13 +270,29 @@ class BinInfoDialog(QDialog):
         self.setLayout(hbox)
         self.update_gui()
 
+    def save_clicked(self):
+        now = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
+        file_name = f"cov_histo{now}"
+        d_path = os.path.join(self.parent.cfg.homepath, 'coverage_histograms')
+        if not os.path.exists(d_path):
+            os.makedirs(d_path)
+        f_path = os.path.join(self.parent.cfg.homepath, 'coverage_histograms', file_name)
+        self.figure.savefig(fname=f_path)
+
+    def cut_clicked(self):
+        if self.cut_ckbox.isChecked():
+            self.cut_quartiles = True
+        else:
+            self.cut_quartiles = False
+        self.update_gui()
+
     def update_selected(self, selected: np.ndarray):
         self.selected = selected
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.update_selected()")
 
         if self.contigs is not None and self.mgs is not None:
-            self.count_arr = np.zeros(len(self.mgs), dtype=int)
+
             self.find_selected_contigs()
 
         if self.isVisible():
@@ -286,7 +313,7 @@ class BinInfoDialog(QDialog):
         # form into dictionary
         for i_idx in range(len(mgs)):
             self.mg_dict[mgs[i_idx].MG_name] = i_idx
-        self.count_arr = np.zeros(len(mgs), dtype=int)
+
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.set_markergenes()\n"
                   f"\tMG_Dictionary:{self.mg_dict}")
@@ -311,6 +338,7 @@ class BinInfoDialog(QDialog):
     def calc_values(self):
         # print(f"DIGGAH {self.sel_contigs}")
         coverages = []
+        self.count_arr = np.zeros(len(self.mgs), dtype=int)
         for c in self.sel_contigs:
             c_mgs = c.mgs
             # print(f"LOL {c}")
@@ -336,16 +364,25 @@ class BinInfoDialog(QDialog):
             i_max += 1
         contamination = contamination / len(self.mgs)
 
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
+
         coverages = np.array(coverages, dtype=float)
-        return completeness, contamination, coverages
+        sorted_cov = np.sort(coverages)
+        if self.cut_quartiles:
+            q1_idx = int(np.round(len(sorted_cov) * 0.25))
+            q3_idx = int(np.round(len(sorted_cov) * 0.75))
+            print(f'################ {len(sorted_cov[q1_idx:q3_idx])}')
+            return completeness, contamination, sorted_cov[q1_idx:q3_idx]
+        else:
+            return completeness, contamination, sorted_cov
 
     def update_histo(self, cov, bin_rule=0):
         n = len(cov)
         sigma = np.std(cov)
-        sorted_cov = np.sort(cov)
-        q3, q1 = np.percentile(sorted_cov, [75, 25])
+        q3, q1 = np.percentile(cov, [75, 25])
         if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.update_histo: Quartiles:{q1,q3}; Sigma:{sigma}")
+            print(f"[DEBUG] BinInfoDialog.update_histo: Quartiles:{q1, q3}; Sigma:{sigma}")
         if bin_rule == 0:
             # Sturges-Rule for Bin number
             bins = 1 + np.log2(n)
@@ -370,6 +407,7 @@ class BinInfoDialog(QDialog):
         self.ax.cla()
         # TODO check if cov changes -> should do because values printed out do change
         self.ax.hist(cov, bins=bins_round)
+        self.figure.canvas.draw_idle()
 
     def show(self) -> None:
         if self.contigs is not None and self.mgs is not None:
@@ -385,4 +423,3 @@ class BinInfoDialog(QDialog):
             self.update_histo(coverages, self.STURGES)
             self.completeness_nbr_lbl.setText(str(completeness))
             self.containment_nbr_lbl.setText(str(contamination))
-
