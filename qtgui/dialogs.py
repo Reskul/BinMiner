@@ -318,7 +318,6 @@ class BinInfoDialog(QDialog):
                 # print(f"ROFL {mg}")
                 self.count_arr[self.mg_dict[mg]] += 1
             coverages.append(c.coverage)
-            # ToDo add option for multidim coverages
 
         val_greater_zero = [val > 0 for val in self.count_arr]
         completeness = sum(val_greater_zero) / len(self.mgs)
@@ -334,16 +333,19 @@ class BinInfoDialog(QDialog):
         while i_max <= max_cnt:
             existing = sum([val == i_max for val in self.count_arr])
             contamination += existing * (i_max - 1)
+            i_max += 1
         contamination = contamination / len(self.mgs)
 
-        coverages = np.array(coverages)
+        coverages = np.array(coverages, dtype=float)
         return completeness, contamination, coverages
 
     def update_histo(self, cov, bin_rule=0):
         n = len(cov)
         sigma = np.std(cov)
-        q3, q1 = np.percentile(cov, [75, 25])
-        print(q1, q3)
+        sorted_cov = np.sort(cov)
+        q3, q1 = np.percentile(sorted_cov, [75, 25])
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.update_histo: Quartiles:{q1,q3}; Sigma:{sigma}")
         if bin_rule == 0:
             # Sturges-Rule for Bin number
             bins = 1 + np.log2(n)
@@ -355,8 +357,19 @@ class BinInfoDialog(QDialog):
             bins = (2 * (q3 - q1)) / np.cbrt(n)
         else:
             bins = n / 5
-        bins = int(np.round(bins))
-        self.ax.hist(cov, bins=bins)
+
+        bins_round = int(np.round(bins))
+
+        if self.DEBUG:
+            print(f"[DEBUG] BinInfoDialog.update_histo(): N:{n}; BinsRaw:{bins}; Bins:{bins_round}; Rule:{bin_rule}")
+
+        if bins_round < 1:
+            bins = int(np.round(n / 5))
+            print(f"[DEBUG] BinInfoDialog.update_histo(): Bins:{bins}")
+
+        self.ax.cla()
+        # TODO check if cov changes -> should do because values printed out do change
+        self.ax.hist(cov, bins=bins_round)
 
     def show(self) -> None:
         if self.contigs is not None and self.mgs is not None:
@@ -369,6 +382,7 @@ class BinInfoDialog(QDialog):
         if self.selected is not None and self.isVisible():
             completeness, contamination, coverages = self.calc_values()
 
+            self.update_histo(coverages, self.STURGES)
             self.completeness_nbr_lbl.setText(str(completeness))
             self.containment_nbr_lbl.setText(str(contamination))
-            self.update_histo(coverages, self.STURGES)
+
