@@ -1,3 +1,5 @@
+import ntpath
+
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -7,13 +9,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import numpy as np
-import os
 
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
 
 from cfg import *
-from lib import *
 from .dialogs import BinInfoDialog
 
 
@@ -23,6 +23,12 @@ class QFileInputLine(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setReadOnly(True)
+
+    def is_empty(self):
+        if self.text() == "":
+            return True
+        else:
+            return False
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         self.clicked.emit()
@@ -34,7 +40,8 @@ class InputGUI(QWidget):
         # INSTANCE VARIABLES
         self.DEBUG = debug
         self.config = cfg
-        self.contig_dataset_path = None
+        self.contig_sequences_path = None
+        self.contig_coverage_path = None
         self.kmere_dataset_path = None
         self.fetchmg_result_path = None
         self.prodigal_binpath = None
@@ -55,7 +62,12 @@ class InputGUI(QWidget):
         # Contig DNA Sequence ----------
         self.contig_dataset_le = QFileInputLine()
         self.contig_dataset_le.clicked.connect(self.cd_clicked)
-        f_layout.addRow(QLabel("Contig Dataset"), self.contig_dataset_le)
+        f_layout.addRow(QLabel("Contig Sequences File"), self.contig_dataset_le)
+
+        # Contig Coverage File
+        self.contig_coverage_le = QFileInputLine()
+        self.contig_coverage_le.clicked.connect(self.cc_clicked)
+        f_layout.addRow((QLabel("Contig Coverage File")), self.contig_coverage_le)
 
         # K-Mere Data ----------
         self.kmere_dataset_le = QFileInputLine()
@@ -115,12 +127,27 @@ class InputGUI(QWidget):
         self.setLayout(general_layout)
 
     def cd_clicked(self):
-        # path, _ = QFileDialog.getOpenFileName(self, 'Open Contig File', self.DEFAULTPATH,'Numpy Files (*.fasta)')
-        path = QFileDialog.getExistingDirectory(self, 'Select Contig Data Directory', self.config.homepath,
-                                                QFileDialog.ShowDirsOnly)
+        # path = QFileDialog.getExistingDirectory(self, 'Select Contig Fasta-Data File', self.config.homepath,
+        #                                        QFileDialog.ShowDirsOnly)
+
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Fasta-Data File', self.config.homepath,
+                                              'Fasta Files (*.fasta *.faa *.fa *.fna)')
+
         if path:
             self.contig_dataset_le.setText(path)
-            self.contig_dataset_path = path
+            self.contig_sequences_path = path
+
+    def cc_clicked(self):
+        if not self.contig_dataset_le.is_empty():
+            dirname = ntpath.dirname(self.contig_dataset_le.text())
+        else:
+            dirname = self.cfg.homepath
+
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Coverage File', dirname,
+                                              'Depth/Text Files (*.depth *.depth.txt)')
+        if path:
+            self.contig_coverage_le.setText(path)
+            self.contig_coverage_path = path
 
     def km_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select K-mere Data Directory', self.config.homepath,
@@ -169,12 +196,12 @@ class InputGUI(QWidget):
             self.fetchmg_path_le.setText(path)
 
     def next_clicked(self):
-        if self.contig_dataset_path is not None and self.kmere_dataset_path is not None:
+        if self.contig_sequences_path is not None and self.kmere_dataset_path is not None:
             if self.results_radbtn.isChecked() and self.fetchmg_result_path is not None:
-                self.parent().process_input(self.contig_dataset_path, self.kmere_dataset_path,
+                self.parent().process_input(self.contig_sequences_path, self.kmere_dataset_path,
                                             fetchmg_respath=self.fetchmg_result_path)
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
-                self.parent().process_input(self.contig_dataset_path, self.kmere_dataset_path,
+                self.parent().process_input(self.contig_sequences_path, self.kmere_dataset_path,
                                             prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
