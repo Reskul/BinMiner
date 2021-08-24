@@ -150,8 +150,9 @@ class DataLoadingRunnable(QRunnable):
         super().__init__()
         self.call = args[0]
         self.contig_path = args[1]
-        self.kmere_path = args[2]
-        self.DATADIR = args[3]
+        self.coverage_path = args[2]
+        self.kmere_path = args[3]
+        self.DATADIR = args[4]
         self.DEBUG = kwargs.get('debug', False)
         self.create = kwargs.get('create', False)
 
@@ -160,10 +161,10 @@ class DataLoadingRunnable(QRunnable):
         self.contig_cov_filepath = os.path.join(self.contig_path, f"{dataset_name}.depth.txt")
 
         if not self.create:
-            self.fetchmg_respath = args[4]
+            self.fetchmg_respath = args[5]
         else:
-            self.fetchmg_binpath = args[4]
-            self.prodigal_binpath = args[5]
+            self.fetchmg_binpath = args[5]
+            self.prodigal_binpath = args[6]
 
             self.protein_filename = f"{dataset_name}_prot.fasta"
             self.mg_output_dir = f"mgs_{dataset_name}"
