@@ -187,10 +187,10 @@ class SelectGUI(QWidget):
         self.DEBUG = debug
         self.data = kmere_data
         self.cont_data = None
-        self.selected_nbr = 0
+        self.n_selected = 0
         self.bw = 1
         self.contours = 25
-        self.selected_data = np.zeros(len(self.data))
+        self.selected_vec = np.zeros(len(self.data))
         self.grid_points = 100
 
         self.analyze_widget = BinInfoDialog(self.parent(), contigs=contigs, mgs=mgs, debug=self.DEBUG)
@@ -253,9 +253,9 @@ class SelectGUI(QWidget):
         self.setLayout(layout)
 
     def set_selected_cnt(self):
-        if self.selected_data is not None:
-            count = sum(self.selected_data)
-            self.selected_nbr = count
+        if self.selected_vec is not None:
+            count = sum(self.selected_vec)
+            self.n_selected = count
             self.sel_lbl.setText(f"Ausgewählt: {count}")
         else:
             self.sel_lbl.setText(f"Ausgewählt: --")
@@ -287,7 +287,7 @@ class SelectGUI(QWidget):
 
     def update_datapoints(self):
         """Only updates the data points"""
-        self.ax.scatter(self.data[:, 0], self.data[:, 1], marker=".", s=2, c=self.selected_data)
+        self.ax.scatter(self.data[:, 0], self.data[:, 1], marker=".", s=2, c=self.selected_vec)
 
     def update_peaks(self, x, y, z):
         """Only updates the peak points"""
@@ -324,30 +324,23 @@ class SelectGUI(QWidget):
                             path_list.append(p)
 
             last = len(path_list) - 1
-            contained = path_list[last].contains_points(self.data)
+            self.selected_vec = np.array(path_list[last].contains_points(self.data), dtype=bool)
             if self.DEBUG:
                 print("[DEBUG] SelectGUI.on_mpl_press()")
                 print("Nbr of found paths:", len(path_list))
-                print(contained[0], np.shape(contained), '\n', np.shape(self.data))
-            # TODO: Maybe use the contained array directly als self.selected_data
-            self.selected_data = np.empty(np.shape(contained), dtype=bool)
-            for i in range(len(contained)):
-                if contained[i]:
-                    self.selected_data[i] = True
-                    # self.selected_data = np.hstack(self.selected_data, self.data[i])  # -> not useful because processed data is not fixed to fasta contigs
-                else:
-                    self.selected_data[i] = False
+                print(self.selected_vec[0], np.shape(self.selected_vec), '\n', np.shape(self.data))
+
             self.update_plot(highlighted_cont=path_list[last])  # , col='green')
-            self.analyze_widget.update_selected(self.selected_data)
+            self.analyze_widget.update_selected(self.selected_vec)
             self.set_selected_cnt()
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
-        self.analyze_widget.update_selected(self.selected_data)
-        if not self.analyze_widget.isVisible():
-            self.analyze_widget.show()
-        # TODO: Take Bool(0,1) Array self.selected_data and get the corresponding Fasta contigs, then apply found mg's and calculate stats
-        # TODO change a bit
+        if self.n_selected > 0:
+            self.analyze_widget.update_selected(self.selected_vec)
+
+            if not self.analyze_widget.isVisible():
+                self.analyze_widget.show()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         super().closeEvent(a0)
