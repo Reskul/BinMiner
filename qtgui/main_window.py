@@ -397,8 +397,7 @@ class ControllingWindow(QMainWindow):
             print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
         elif fetchmg_respath is not None:
             runnable = DataLoadingRunnable(self, contig_path, coverage_path, kmere_path, self.cfg.homepath,
-                                           fetchmg_respath,
-                                           debug=self.DEBUG)
+                                           fetchmg_respath, debug=self.DEBUG)
             QThreadPool.globalInstance().start(runnable)
         elif fetchmg_path is not None:
             print(f"[ERROR] Not finished this part yet ;).")
