@@ -157,8 +157,6 @@ class DataLoadingRunnable(QRunnable):
         self.create = kwargs.get('create', False)
 
         dataset_name = ntpath.basename(self.contig_path)
-        self.contig_filepath = os.path.join(self.contig_path, f"{dataset_name}.fasta")
-        self.contig_cov_filepath = os.path.join(self.contig_path, f"{dataset_name}.depth.txt")
 
         if not self.create:
             self.fetchmg_respath = args[5]
@@ -177,11 +175,11 @@ class DataLoadingRunnable(QRunnable):
 
             completed_prodigal = subprocess.run(
                 [self.prodigal_binpath, "-a", f"{self.DATADIR}/prodigal/{self.protein_filename}", "-i",
-                 self.contig_filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                 self.contig_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             completed_prodigal.check_returncode()
 
             completed_fetchmg = subprocess.run(
-                ["perl", self.fetchmg_binpath, "-d", self.contig_filepath, "-o", f"{self.DATADIR}/{self.mg_output_dir}",
+                ["perl", self.fetchmg_binpath, "-d", self.contig_path, "-o", f"{self.DATADIR}/{self.mg_output_dir}",
                  "-m extraction", f"{self.DATADIR}/prodigal/{self.protein_filename}"], stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
@@ -214,9 +212,9 @@ class DataLoadingRunnable(QRunnable):
 
         # READ-IN Data from Fasta to get all existing Contigs ----------
         reader = FastaReader(FastaReader.MYCC)
-        header = reader.read_raw_file(open(self.contig_filepath, 'r'))
+        header = reader.read_raw_file(open(self.contig_path, 'r'))
 
-        coverage_file = open(self.contig_cov_filepath, 'r')
+        coverage_file = open(self.coverage_path, 'r')
         coverage_tup = self.read_coverage(coverage_file)
 
         contigs = np.empty(len(header), dtype=Contig)
