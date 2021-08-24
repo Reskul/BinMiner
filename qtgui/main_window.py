@@ -373,7 +373,7 @@ class ControllingWindow(QMainWindow):
         self.contigs = None
         self.mgs = None
 
-        self.input_widget = InputGUI(cfg=cfg)
+        self.input_widget = InputGUI(parent=self, cfg=cfg)
         self.select_widget = None
         # self.rating_dialog = BinInfoDialog()
 
@@ -410,5 +410,5 @@ class ControllingWindow(QMainWindow):
         self.contigs = contigs
         self.mgs = mgs
         self.STATUS = self.STATUS_SELECT
-        self.select_widget = SelectGUI(datapoints, contigs, mgs, debug=self.DEBUG)
+        self.select_widget = SelectGUI(datapoints, contigs, mgs, parent=self, debug=self.DEBUG)
         self.determine_widget()
