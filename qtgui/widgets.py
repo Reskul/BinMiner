@@ -198,11 +198,13 @@ class InputGUI(QWidget):
     def next_clicked(self):
         if self.contig_sequences_path is not None and self.kmere_dataset_path is not None:
             if self.results_radbtn.isChecked() and self.fetchmg_result_path is not None:
-                self.parent().process_input(self.contig_sequences_path, self.kmere_dataset_path,
-                                            fetchmg_respath=self.fetchmg_result_path)
+                self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
+                                            self.kmere_dataset_path, fetchmg_respath=self.fetchmg_result_path)
+
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
-                self.parent().process_input(self.contig_sequences_path, self.kmere_dataset_path,
-                                            prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath)
+                self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
+                                            self.kmere_dataset_path, prodigal_path=self.prodigal_binpath,
+                                            fetchmg_path=self.fetchmg_binpath)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
 
