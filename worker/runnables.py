@@ -5,6 +5,8 @@ import subprocess
 import numpy as np
 from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from lib import *
 
@@ -240,7 +242,7 @@ class DataLoadingRunnable(QRunnable):
 
     def read_data(self):
         if self.DEBUG:
-            print("[DEBUG] LoadingNpyRunnable.run()", self.kmere_path)
+            print("[DEBUG] DataLoadingRunnable.run()", self.kmere_path)
         data_raw = np.load(self.kmere_path)
         # dir_path = ntpath.dirname(self.kmere_path)
         # dataset_name = ntpath.basename(self.kmere_path).split('_')[0]
@@ -262,10 +264,32 @@ class DataLoadingRunnable(QRunnable):
         lines_nbr = len(lines)
         lines = lines[:lines_nbr - 1]
 
-        collection = []
+        cov_dim = len(lines[0].split('\t')) - 1
+        data_len = len(lines)
+
+        names = []
+        covs = np.empty((1, cov_dim))
         for l in lines:
             res = l.split('\t')
-            tup = (res[0], [float(val) for val in res[1:]])
-            collection.append(tup)
+            tup = res[0]
+            names.append(tup)
+            covs = np.vstack((covs, [float(val) for val in res[1:]]))
 
-        return collection
+        # PCA on multidim Coverages
+        n_components = 1  # wont be changed because Histogramm can only show 1-dim
+        covs = covs[1:]
+        if cov_dim > 1:
+            if self.DEBUG:
+                print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Applying PCA")
+            # Standard Scaler
+            scaled_data = StandardScaler().fit_transform(covs)  # Maybe use this if non-scaled fails
+            reduced_covs = PCA(n_components, random_state=5).fit_transform(covs)
+        else:
+            reduced_covs = covs
+
+        i = 0
+        collection = []
+        while i < data_len:
+            collection.append((names[i], reduced_covs[i]))
+            i += 1
+        return np.array(collection, dtype=tuple)
