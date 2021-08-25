@@ -12,7 +12,6 @@ from skimage.feature import peak_local_max
 from lib import *
 from .dialogs import *
 from .widgets import *
-from cfg import Configurator
 from worker import *
 
 

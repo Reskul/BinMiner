@@ -2,8 +2,7 @@ import sys
 import os
 import platform
 from pathlib import Path
-from cfg import *
-
+from lib import *
 from qtgui import *
 from PyQt5.QtWidgets import *
 

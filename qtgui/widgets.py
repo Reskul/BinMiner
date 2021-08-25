@@ -13,7 +13,7 @@ import numpy as np
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
 
-from cfg import *
+from lib import *
 from .dialogs import BinInfoDialog
 
 

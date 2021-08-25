@@ -5,8 +5,7 @@ from datetime import date
 from datetime import datetime
 
 from PyQt5.QtWidgets import *
-from cfg import *
-from lib import Contig
+from lib import *
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
