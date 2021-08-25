@@ -112,6 +112,14 @@ class InputGUI(QWidget):
         next_btn = QPushButton("Next")
         next_btn.clicked.connect(self.next_clicked)
 
+        # Same Procedure as last year Miss Sophie?
+        self.last_ckbox = QCheckBox("Use Last Values")
+        self.last_ckbox.clicked.connect(self.lastckbox_clicked)
+
+        btn_layout = QGridLayout()
+        btn_layout.addWidget(self.last_ckbox, 0, 0, 1, 3)
+        btn_layout.addWidget(next_btn, 0, 4, 1, 1)
+
         # FINALIZE GUI
         form_gbox.setLayout(f_layout)
         radio_gbox.setLayout(radio_hbox)
@@ -122,7 +130,7 @@ class InputGUI(QWidget):
         general_layout.addWidget(radio_gbox)
         general_layout.addWidget(self.fetchmg_results_gbox)
         general_layout.addWidget(self.binaries_input_gbox)
-        general_layout.addWidget(next_btn, alignment=Qt.AlignRight)
+        general_layout.addLayout(btn_layout)
         general_layout.addStretch(1)
         self.setLayout(general_layout)
 
@@ -198,15 +206,67 @@ class InputGUI(QWidget):
     def next_clicked(self):
         if self.contig_sequences_path is not None and self.kmere_dataset_path is not None:
             if self.results_radbtn.isChecked() and self.fetchmg_result_path is not None:
+                if self.config:
+                    self.config.write(self.config.CONTIGSEQ_KEY, self.contig_sequences_path)
+                    self.config.write(self.config.CONTIGCOV_KEY, self.contig_coverage_path)
+                    self.config.write(self.config.KMERE_KEY, self.kmere_dataset_path)
+                    self.config.write(self.config.FETCHMGRES_KEY, self.fetchmg_result_path)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
                                             self.kmere_dataset_path, fetchmg_respath=self.fetchmg_result_path)
 
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
+                if self.cfg:
+                    self.config.write(self.config.CONTIGSEQ_KEY, self.contig_sequences_path)
+                    self.config.write(self.config.CONTIGCOV_KEY, self.contig_coverage_path)
+                    self.config.write(self.config.KMERE_KEY, self.kmere_dataset_path)
+                    self.config.write(self.config.FETCHMG_KEY, self.fetchmg_binpath)
+                    self.config.write(self.config.PRODIGAL_KEY, self.prodigal_binpath)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
                                             self.kmere_dataset_path, prodigal_path=self.prodigal_binpath,
                                             fetchmg_path=self.fetchmg_binpath)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
+
+    def lastckbox_clicked(self):
+        if self.last_ckbox.isChecked():
+            # Fill LineEdits with Values
+            if not self.config.is_new:
+                print(f"[DEBUG] InputGUI.lastckbox_clicked(): Config wurde NICHT neu erstellt.")
+                contig_seq = self.config.read(Configurator.CONTIGSEQ_KEY)
+                contig_cov = self.config.read(Configurator.CONTIGCOV_KEY)
+                kmere_set = self.config.read(Configurator.KMERE_KEY)
+                fetchmg_res = self.config.read(Configurator.FETCHMGRES_KEY)
+                fetchmg_bin = self.config.read(Configurator.FETCHMG_KEY)
+                prodigal_bin = self.config.read(Configurator.PRODIGAL_KEY)
+
+                self.contig_sequences_path = contig_seq
+                self.contig_coverage_path = contig_cov
+                self.kmere_dataset_path = kmere_set
+                self.fetchmg_result_path = fetchmg_res
+                self.fetchmg_binpath = fetchmg_bin
+                self.prodigal_binpath = prodigal_bin
+
+                self.contig_dataset_le.setText(contig_seq)
+                self.contig_coverage_le.setText(contig_cov)
+                self.kmere_dataset_le.setText(kmere_set)
+                self.fetchmg_res_le.setText(fetchmg_res)
+                self.fetchmg_path_le.setText(fetchmg_bin)
+                self.prodigal_path_le.setText(prodigal_bin)
+        else:
+            # clear all LineEdits
+            self.contig_dataset_le.setText("")
+            self.contig_coverage_le.setText("")
+            self.kmere_dataset_le.setText("")
+            self.fetchmg_res_le.setText("")
+            self.fetchmg_path_le.setText("")
+            self.prodigal_path_le.setText("")
+
+            self.contig_sequences_path = None
+            self.contig_coverage_path = None
+            self.kmere_dataset_path = None
+            self.fetchmg_result_path = None
+            self.fetchmg_binpath = None
+            self.prodigal_binpath = None
 
 
 class SelectGUI(QWidget):
@@ -227,6 +287,7 @@ class SelectGUI(QWidget):
         # BACK BUTTON
         back_btn = QPushButton("<- Back")
         back_btn.clicked.connect(self.back_clicked)
+        back_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # Data Visualization ----------
         fig = Figure()
@@ -377,6 +438,7 @@ class SelectGUI(QWidget):
                 self.analyze_widget.show()
 
     def back_clicked(self):
+        self.analyze_widget.close()
         self.parent().STATUS = self.parent().STATUS_INPUT
         self.parent().determine_widget()
 
