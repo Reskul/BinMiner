@@ -7,10 +7,14 @@ class Configurator:
     DEBUG = True
     homepath = None
     cfg_file = None
-    keys = {"prodigal": "", "fetchMG": "", "working": ""}
+    keys = {"contigsequences": "", "contigcoverages": "", "prodigal": "", "fetchMG": "", "fetchMGres": "",
+            "kmeredata": ""}
     PRODIGAL_KEY = "prodigal"
     FETCHMG_KEY = "fetchMG"
-    DATA_KEY = "working"
+    FETCHMGRES_KEY = "fetchMGres"
+    CONTIGSEQ_KEY = "contigsequences"
+    CONTIGCOV_KEY = "contigcoverages"
+    KMERE_KEY = "kmeredata"
 
     def __init__(self, path):
         self.homepath = path
@@ -18,12 +22,14 @@ class Configurator:
         if os.path.exists(filepath):
             self.cfg_file = open(filepath, "r+")
             self.keys = json.load(self.cfg_file)
-            print("existing")
+            self.is_new = False
+            print(f"[DEBUG] Configurator.__init__(): File exists.")
         else:
             self.cfg_file = open(filepath, "w+")
             self.cfg_file.write(json.dumps(self.keys))
             self.cfg_file.flush()
-            print("written")
+            self.is_new = True
+            print(f"[DEBUG] Configurator.__init__(): Created new File.")
 
     def write(self, key: str, val):
         self.keys[key] = val
