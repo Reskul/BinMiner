@@ -372,7 +372,6 @@ class ControllingWindow(QMainWindow):
         self.contigs = None
         self.mgs = None
 
-        self.input_widget = InputGUI(parent=self, cfg=cfg)
         self.select_widget = None
         # self.rating_dialog = BinInfoDialog()
 
@@ -386,7 +385,7 @@ class ControllingWindow(QMainWindow):
 
     def determine_widget(self):
         if self.STATUS == self.STATUS_INPUT:
-            self.setCentralWidget(self.input_widget)
+            self.setCentralWidget(InputGUI(parent=self, cfg=self.cfg))
         elif self.STATUS == self.STATUS_SELECT:
             self.setCentralWidget(self.select_widget)
 
