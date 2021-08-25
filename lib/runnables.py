@@ -1,14 +1,13 @@
 import ntpath
 import os
 import subprocess
-
 import numpy as np
+
 from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-
-from lib import *
+from . import *
 
 
 class DataLoadingRunnable(QRunnable):
@@ -55,6 +54,8 @@ class DataLoadingRunnable(QRunnable):
 
         datapoints = self.read_data()
         contigs, mgs = self.read_mgs()
+        # TODO Neues Layer einbauen mit dem dann contig daten und kmere getauscht/aneinandergefuegt usw. werden koennen
+        # TODO danach dann erst TSNE
         QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
                                  Q_ARG(type(mgs), mgs), Q_ARG(type(datapoints), datapoints))
 
