@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, pyqtSlot, QThreadPool
 
 from .widgets import *
-from worker import *
+from lib import *
 
 
 class ControllingWindow(QMainWindow):

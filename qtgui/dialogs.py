@@ -6,8 +6,11 @@ from datetime import datetime
 from PyQt5.QtWidgets import *
 from lib import *
 
+import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+matplotlib.rc('font', size=25)
 
 
 class BinInfoDialog(QDialog):
@@ -31,6 +34,7 @@ class BinInfoDialog(QDialog):
 
         self.completeness_nbr_lbl = None
         self.containment_nbr_lbl = None
+        self.cut_ckbox = None
 
         self.figure = None
         self.ax = None
@@ -84,7 +88,7 @@ class BinInfoDialog(QDialog):
         if not os.path.exists(d_path):
             os.makedirs(d_path)
         f_path = os.path.join(self.parent.cfg.homepath, 'coverage_histograms', file_name)
-        self.figure.savefig(fname=f_path)
+        self.figure.savefig(fname=f_path, dpi=100)
 
     def cut_clicked(self):
         if self.cut_ckbox.isChecked():
@@ -99,7 +103,6 @@ class BinInfoDialog(QDialog):
             print(f"[DEBUG] BinInfoDialog.update_selected()")
 
         if self.contigs is not None and self.mgs is not None:
-
             self.find_selected_contigs()
 
         if self.isVisible():
@@ -161,7 +164,6 @@ class BinInfoDialog(QDialog):
                   f"\tCounted MG's:{self.count_arr}\n"
                   f"\tValues greater than 0:{val_greater_zero}\n"
                   f"\tCompleteness:{completeness}")
-        # completeness = sum([val > 0 for val in self.count_arr])
         max_cnt = max(self.count_arr)
         i_max = 2
         contamination = 0
@@ -175,11 +177,11 @@ class BinInfoDialog(QDialog):
             print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
 
         coverages = np.array(coverages, dtype=float)
+        # TODO do PCA only on selection --> here
         sorted_cov = np.sort(coverages)
         if self.cut_quartiles:
             q1_idx = int(np.round(len(sorted_cov) * 0.25))
             q3_idx = int(np.round(len(sorted_cov) * 0.75))
-            print(f'################ {len(sorted_cov[q1_idx:q3_idx])}')
             return completeness, contamination, sorted_cov[q1_idx:q3_idx]
         else:
             return completeness, contamination, sorted_cov
@@ -212,8 +214,10 @@ class BinInfoDialog(QDialog):
             print(f"[DEBUG] BinInfoDialog.update_histo(): Bins:{bins}")
 
         self.ax.cla()
-        # TODO check if cov changes -> should do because values printed out do change
         self.ax.hist(cov, bins=bins_round)
+        self.ax.set_title("Coverage of selected contigs")
+        self.ax.set_xlabel("Coverage")
+        self.ax.set_ylabel("Frequency")
         self.figure.canvas.draw_idle()
 
     def show(self) -> None:
