@@ -224,6 +224,10 @@ class SelectGUI(QWidget):
 
         self.analyze_widget = BinInfoDialog(self.parent(), contigs=contigs, mgs=mgs, debug=self.DEBUG)
 
+        # BACK BUTTON
+        back_btn = QPushButton("<- Back")
+        back_btn.clicked.connect(self.back_clicked)
+
         # Data Visualization ----------
         fig = Figure()
         self.ax = fig.add_subplot(111)
@@ -232,8 +236,9 @@ class SelectGUI(QWidget):
         toolbar = NavigationToolbar(self.canvas, self)
 
         diagram_layout = QGridLayout()
-        diagram_layout.addWidget(self.canvas, 0, 0, 1, 3)
-        diagram_layout.addWidget(toolbar, 1, 0, 1, 1)
+        diagram_layout.addWidget(back_btn, 0, 0, 1, 1)
+        diagram_layout.addWidget(self.canvas, 1, 0, 1, 3)
+        diagram_layout.addWidget(toolbar, 2, 0, 1, 1)
 
         # Matplotlib Interaction ----------
         self.canvas.mpl_connect("button_press_event", self.on_mpl_press)
@@ -247,7 +252,7 @@ class SelectGUI(QWidget):
         selected_layout.addWidget(self.sel_lbl)
         selected_layout.addWidget(process_sel_btn)
 
-        diagram_layout.addLayout(selected_layout, 1, 2, 1, 1)
+        diagram_layout.addLayout(selected_layout, 2, 2, 1, 1)
 
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
@@ -370,6 +375,10 @@ class SelectGUI(QWidget):
 
             if not self.analyze_widget.isVisible():
                 self.analyze_widget.show()
+
+    def back_clicked(self):
+        self.parent().STATUS = self.parent().STATUS_INPUT
+        self.parent().determine_widget()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         super().closeEvent(a0)
