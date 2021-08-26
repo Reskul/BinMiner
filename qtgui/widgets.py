@@ -146,10 +146,8 @@ class InputGUI(QWidget):
     def cd_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select Contig Fasta-Data File', self.config.homepath,
         #                                        QFileDialog.ShowDirsOnly)
-
         path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Fasta-Data File', self.config.homepath,
                                               'Fasta Files (*.fasta *.faa *.fa *.fna)')
-
         if path:
             self.contig_dataset_le.setText(path)
             self.contig_sequences_path = path
