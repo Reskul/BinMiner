@@ -6,7 +6,10 @@ class Sequence(str):
         obj.unique_id = unique_id
         if header is not None:
             obj.header = header
+        else:
+            obj.header = None
         return obj
 
     def add_header(self, header):
-        self.header = header
+        if self.header is None:
+            self.header = header
