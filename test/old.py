@@ -614,7 +614,7 @@ class FastaLoadingRunnable(QRunnable):
         mgs = []
         for f in cog_files:
             path = os.path.join(mg_path, f)
-            header = reader.read_raw_file(open(path, 'r'))
+            header = reader.read_header_only(open(path, 'r'))
             contigs = [c.contig_pure for c in header]
             mg = MarkerGene(f.split('.')[0])
             mg.add_contigs(contigs)
@@ -625,7 +625,7 @@ class FastaLoadingRunnable(QRunnable):
 
         # READ-IN Data from Fasta to get all existing Contigs
         reader = FastaReader(FastaReader.MYCC)
-        header = reader.read_raw_file(open(fasta_path, 'r'))
+        header = reader.read_header_only(open(fasta_path, 'r'))
         contigs = np.empty(len(header), dtype=Contig)
         content = None
         if self.TRANSLATE_CONTIGS:

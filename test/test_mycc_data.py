@@ -12,6 +12,6 @@ assembly_25s = "/home/rom/Dokumente/BA_Data/mycc/25s/assembly.fa"
 
 # contigs_file = open(contigs, 'r')
 assembly_file = open(assembly_25s,'r')
-header = reader.read_raw_file(assembly_file)
-test = reader.read_ma_fasta(assembly_file)
+header = reader.read_header_only(assembly_file)
+test = reader.read_full_fasta(assembly_file)
 print(header)
