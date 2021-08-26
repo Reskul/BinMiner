@@ -5,8 +5,6 @@ import numpy as np
 
 from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 from lib import FastaReader, Contig, MarkerGene
 
 
@@ -53,13 +51,18 @@ class DataLoadingRunnable(QRunnable):
                 stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
 
-        datapoints = self.read_data()
+        kmere_counts = self.read_data()
         contigs, mgs = self.read_mgs()
         # TODO Neues Layer einbauen mit dem dann contig daten und kmere getauscht/aneinandergefuegt usw. werden koennen
-        if self.check_correlation(datapoints, contigs):
-            kmere_sums = np.sum(datapoints, 1)
-            x_mat = (datapoints.T / kmere_sums).T  # Norm data
+        if self.check_correlation(kmere_counts, contigs):
+            kmere_sums = np.sum(kmere_counts, 1)
+            x_mat = (kmere_counts.T / kmere_sums).T  # Norm data
             data = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)  # T-SNE Data Dim reduction
+            # zip Kmere_counts into Contig
+            i = 0
+            while i < len(contigs):
+                contigs[i].kmere_counts = kmere_counts[i]
+                i += 1
 
             QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
                                      Q_ARG(type(mgs), mgs), Q_ARG(type(data), data))

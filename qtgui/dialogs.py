@@ -40,7 +40,8 @@ class BinInfoDialog(QDialog):
         self.cut_ckbox = None
 
         self.figure = None
-        self.ax = None
+        self.c_ax = None
+        self.k_ax = None
 
         self.init_gui()
 
@@ -60,8 +61,9 @@ class BinInfoDialog(QDialog):
 
         # histogramm groupbox
         histo_gbox = QGroupBox("Coverage Histogram")
-        self.figure = Figure(figsize=(16, 9), dpi=45)
-        self.ax = self.figure.add_subplot(111)
+        self.figure = Figure(figsize=(10, 20), dpi=50)
+        self.c_ax = self.figure.add_subplot(211)
+        self.k_ax = self.figure.add_subplot(212)
         canvas = FigureCanvas(self.figure)
         save_btn = QPushButton("Save As")
         cut_btn = QPushButton("Cut Quartiles")
@@ -105,9 +107,6 @@ class BinInfoDialog(QDialog):
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.update_selected()")
 
-        if self.contigs is not None and self.mgs is not None:
-            self.find_selected_contigs()
-
         if self.isVisible():
             self.update_gui()
 
@@ -116,9 +115,6 @@ class BinInfoDialog(QDialog):
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.set_contigs()\n"
                   f"\tContigs:{contigs}")
-
-        if self.selected is not None and self.mgs is not None:
-            self.find_selected_contigs()
 
     def set_markergenes(self, mgs):
         if self.DEBUG:
@@ -130,35 +126,36 @@ class BinInfoDialog(QDialog):
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.set_markergenes()\n"
                   f"\tMG_Dictionary:{self.mg_dict}")
-        if self.selected is not None and self.contigs is not None:
-            self.find_selected_contigs()
         return mgs
 
     def set_contigs_and_markergenes(self, contigs, mgs):
         self.contigs = contigs
         return contigs, self.set_markergenes(mgs)
 
-    def find_selected_contigs(self):
-        if self.selected is not None:
-            contigs = self.contigs[self.selected]
-
-            if self.DEBUG:
-                print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
-                      f" Selected Contigs[0]:{contigs[0]}")
-
-            self.sel_contigs = contigs
+    # def find_selected_contigs(self):
+    #     if self.selected is not None:
+    #         contigs = self.contigs[self.selected]
+    #
+    #         if self.DEBUG:
+    #             print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
+    #                   f" Selected Contigs[0]:{contigs[0]}")
+    #
+    #         self.sel_contigs = contigs
 
     def calc_values(self):
         # print(f"DIGGAH {self.sel_contigs}")
+        sel_contigs = self.contigs[self.selected]
         coverages = []
+        kmere_counts = []
         self.count_arr = np.zeros(len(self.mgs), dtype=int)
-        for c in self.sel_contigs:
+        for c in sel_contigs:
             c_mgs = c.mgs
             # print(f"LOL {c}")
             for mg in c_mgs:
                 # print(f"ROFL {mg}")
                 self.count_arr[self.mg_dict[mg]] += 1
             coverages.append(c.coverage)
+            kmere_counts.append(c.kmere_counts)
 
         val_greater_zero = [val > 0 for val in self.count_arr]
         completeness = sum(val_greater_zero) / len(self.mgs)
@@ -179,6 +176,12 @@ class BinInfoDialog(QDialog):
         if self.DEBUG:
             print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
 
+        n_components = 1
+
+        kmere_counts = np.array(kmere_counts, dtype=int)
+        scaled_kmere_cnt = StandardScaler().fit_transform(kmere_counts)
+        kmere_counts = PCA(n_components=n_components, random_state=5).fit_transform(kmere_counts)
+
         coverages = np.array(coverages, dtype=float)
         if len(coverages[0]) > 1:
             n_components = 1
@@ -188,42 +191,55 @@ class BinInfoDialog(QDialog):
         if self.cut_quartiles:
             q1_idx = int(np.round(len(sorted_cov) * 0.25))
             q3_idx = int(np.round(len(sorted_cov) * 0.75))
-            return completeness, contamination, sorted_cov[q1_idx:q3_idx]
+            return completeness, contamination, sorted_cov[q1_idx:q3_idx], kmere_counts[q1_idx:q3_idx]
         else:
-            return completeness, contamination, sorted_cov
+            return completeness, contamination, sorted_cov, kmere_counts
 
-    def update_histo(self, cov, bin_rule=0):
+    def update_histo(self, cov, kmere, bin_rule=0):
         n = len(cov)
-        sigma = np.std(cov)
+        cov_sigma = np.std(cov)
+        kmere_sigma = np.std(cov)
         q3, q1 = np.percentile(cov, [75, 25])
         if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.update_histo: Quartiles:{q1, q3}; Sigma:{sigma}")
+            print(f"[DEBUG] BinInfoDialog.update_histo: Quartiles:{q1, q3}; Sigma:{cov_sigma}")
         if bin_rule == 0:
             # Sturges-Rule for Bin number
-            bins = 1 + np.log2(n)
+            k_bins = c_bins = 1 + np.log2(n)
         elif bin_rule == 1:
             # Scott-Rule
-            bins = (3.49 * sigma) / np.cbrt(n)  # std:StandardAbweichung Sigma | cbrt:cubicroot
+            c_bins = (3.49 * cov_sigma) / np.cbrt(n)  # std:StandardAbweichung Sigma | cbrt:cubicroot
+            k_bins = (3.49 * kmere_sigma) / np.cbrt(n)
         elif bin_rule == 2:
             # Freedman-Diaconis Rule
-            bins = (2 * (q3 - q1)) / np.cbrt(n)
+            k_bins = c_bins = (2 * (q3 - q1)) / np.cbrt(n)
         else:
-            bins = n / 5
+            k_bins = c_bins = n / 5
 
-        bins_round = int(np.round(bins))
+        c_bins_round = int(np.round(c_bins))
+        k_bins_round = int(np.round(k_bins))
 
         if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.update_histo(): N:{n}; BinsRaw:{bins}; Bins:{bins_round}; Rule:{bin_rule}")
+            print(
+                f"[DEBUG] BinInfoDialog.update_histo(): N:{n}; BinsRaw:{c_bins}; Bins:{c_bins_round}; Rule:{bin_rule}")
 
-        if bins_round < 1:
-            bins = int(np.round(n / 5))
-            print(f"[DEBUG] BinInfoDialog.update_histo(): Bins:{bins}")
+        # if c_bins_round < 1:
+        #     c_bins = int(np.round(n / 5))
+        #     print(f"[DEBUG] BinInfoDialog.update_histo(): Bins:{c_bins}")
 
-        self.ax.cla()
-        self.ax.hist(cov, bins=bins_round)
-        self.ax.set_title("Coverage of selected contigs")
-        self.ax.set_xlabel("Coverage")
-        self.ax.set_ylabel("Frequency")
+        self.c_ax.cla()
+        self.k_ax.cla()
+
+        self.c_ax.hist(cov, bins=c_bins_round)
+        self.k_ax.hist(kmere, bins=k_bins_round)
+
+        self.c_ax.set_title("Coverage of selected contigs")
+        self.k_ax.set_title("K-mere distribution of selected contigs")
+
+        self.c_ax.set_xlabel("Coverage")
+        self.c_ax.set_ylabel("Frequency")
+        self.k_ax.set_xlabel("K-mere Count")
+        self.k_ax.set_ylabel("Frequency")
+
         self.figure.canvas.draw_idle()
 
     def show(self) -> None:
@@ -234,9 +250,9 @@ class BinInfoDialog(QDialog):
             print(f"[ERROR] Something is missing. You need to insert Contigs ans Markergenes first.")
 
     def update_gui(self):
-        if self.selected is not None and self.isVisible():
-            completeness, contamination, coverages = self.calc_values()
+        if self.selected is not None and self.isVisible() and self.contigs is not None and self.mgs is not None:
+            completeness, contamination, coverages, kmere_counts = self.calc_values()
 
-            self.update_histo(coverages, self.STURGES)
+            self.update_histo(coverages, kmere_counts, self.STURGES)
             self.completeness_nbr_lbl.setText(str(completeness))
             self.containment_nbr_lbl.setText(str(contamination))

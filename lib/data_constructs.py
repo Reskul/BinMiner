@@ -33,6 +33,7 @@ class Contig:
         self.organism = organism
         self.coverage = None
         self.sequence = seq
+        self.kmere_counts = None
 
     def __str__(self):
         return f"{self.CONTIG_name}/{self.organism}:{self.mgs}"
