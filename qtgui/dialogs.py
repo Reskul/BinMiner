@@ -10,6 +10,9 @@ import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 matplotlib.rc('font', size=25)
 
 
@@ -177,7 +180,10 @@ class BinInfoDialog(QDialog):
             print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
 
         coverages = np.array(coverages, dtype=float)
-        # TODO do PCA only on selection --> here
+        if len(coverages[0]) > 1:
+            n_components = 1
+            scaled_cov = StandardScaler().fit_transform(coverages)
+            coverages = PCA(n_components=n_components, random_state=5).fit_transform(coverages)
         sorted_cov = np.sort(coverages)
         if self.cut_quartiles:
             q1_idx = int(np.round(len(sorted_cov) * 0.25))
