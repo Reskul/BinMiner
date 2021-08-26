@@ -7,7 +7,7 @@ from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from . import *
+from lib import FastaReader, Contig, MarkerGene
 
 
 class DataLoadingRunnable(QRunnable):
@@ -21,16 +21,17 @@ class DataLoadingRunnable(QRunnable):
         self.coverage_path = args[2]
         self.kmere_path = args[3]
         self.DATADIR = args[4]
+        self.perplexity = args[5]
         self.DEBUG = kwargs.get('debug', False)
         self.create = kwargs.get('create', False)
 
         dataset_name = ntpath.basename(self.contig_path)
 
         if not self.create:
-            self.fetchmg_respath = args[5]
+            self.fetchmg_respath = args[6]
         else:
-            self.fetchmg_binpath = args[5]
-            self.prodigal_binpath = args[6]
+            self.fetchmg_binpath = args[6]
+            self.prodigal_binpath = args[7]
 
             self.protein_filename = f"{dataset_name}_prot.fasta"
             self.mg_output_dir = f"mgs_{dataset_name}"
@@ -55,9 +56,16 @@ class DataLoadingRunnable(QRunnable):
         datapoints = self.read_data()
         contigs, mgs = self.read_mgs()
         # TODO Neues Layer einbauen mit dem dann contig daten und kmere getauscht/aneinandergefuegt usw. werden koennen
-        # TODO danach dann erst TSNE
-        QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
-                                 Q_ARG(type(mgs), mgs), Q_ARG(type(datapoints), datapoints))
+        if self.check_correlation(datapoints, contigs):
+            kmere_sums = np.sum(datapoints, 1)
+            x_mat = (datapoints.T / kmere_sums).T  # Norm data
+            data = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)  # T-SNE Data Dim reduction
+
+            QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
+                                     Q_ARG(type(mgs), mgs), Q_ARG(type(data), data))
+        else:
+            # TODO Was geht ab wenn die Correlation nicht stimmt???
+            pass
 
     def read_mgs(self):
         if self.create:
@@ -74,7 +82,7 @@ class DataLoadingRunnable(QRunnable):
         mgs = []
         for f in cog_files:
             path = os.path.join(mg_path, f)
-            header = reader.read_raw_file(open(path, 'r'))
+            header = reader.read_header_only(open(path, 'r'))
             contigs = [c.contig_pure for c in header]
             mg = MarkerGene(f.split('.')[0])
             mg.add_contigs(contigs)
@@ -82,18 +90,18 @@ class DataLoadingRunnable(QRunnable):
 
         # READ-IN Data from Fasta to get all existing Contigs ----------
         reader = FastaReader(FastaReader.MYCC)
-        header = reader.read_raw_file(open(self.contig_path, 'r'))
+        sequences = reader.read_full_fasta(open(self.contig_path, 'r'))
 
         coverage_file = open(self.coverage_path, 'r')
         coverage_tup = self.read_coverage(coverage_file)
 
-        contigs = np.empty(len(header), dtype=Contig)
+        contigs = np.empty(len(sequences), dtype=Contig)
         i_idx = 0
         # TODO is there a better method? faster?
-        for h in header:
-            c = Contig(h.contig)
+        for s in sequences:
+            c = Contig(s)
             for mg in mgs:
-                if mg.__contains__(h.contig):
+                if mg.__contains__(c.CONTIG_name):
                     c.add_mg(mg.MG_name)
             for entry in coverage_tup:  # TODO Again, too slow. better way?
                 if c.CONTIG_name == entry[0]:
@@ -118,15 +126,11 @@ class DataLoadingRunnable(QRunnable):
         # access_name = "_".join((dataset_name, "access.npy"))
         # access_path = os.path.join(dir_path, access_name)
         # access_labels = np.load(access_path)
-        # TODO: Contig Längen mit den Counts abgleichen
-        kmere_sums = np.sum(data_raw, 1)
-        x_mat = (data_raw.T / kmere_sums).T  # Norm data ??? ASK!
-        data = TSNE(n_components=2).fit_transform(x_mat)  # T-SNE Data Dim reduction
         if self.DEBUG:
             # print(f"[DEBUG] Access Object:{access_labels[0]}\tType:{type(access_labels[0])}")
-            print(f"[DEBUG] Datenpunkte:{np.shape(data)}")
+            print(f"[DEBUG] Datenpunkte:{np.shape(data_raw)}")
             # print(f"[DEBUG] Access Object:{access_labels[0]}")
-        return data
+        return data_raw
 
     def read_coverage(self, cov_file):
         lines = cov_file.read().split('\n')
@@ -162,3 +166,32 @@ class DataLoadingRunnable(QRunnable):
             collection.append((names[i], reduced_covs[i]))
             i += 1
         return np.array(collection, dtype=tuple)
+
+    def check_correlation(self, kmeres, contigs) -> bool:
+        if len(kmeres) == len(contigs):
+            n = len(kmeres)
+            i = 0
+            c_lengths = np.empty(n)
+            k_lengths = np.empty(n)
+            while i < n:
+                contig = contigs[i]
+                kmere = kmeres[i]
+                c_lengths[i] = len(contig.sequence)
+                k_lengths[i] = sum(kmere)
+                i += 1
+            c_sigma = np.std(c_lengths)
+            c_mean = np.mean(c_lengths)
+            k_sigma = np.std(k_lengths)
+            k_mean = np.mean(k_lengths)
+            c_k_cov = 1 / n * sum((c_lengths - c_mean) * (k_lengths - k_mean))
+            corr = c_k_cov / (c_sigma * k_sigma)
+            if self.DEBUG:
+                print(
+                    f"[DEBUG] DataLoadingRunnable.check_correlation(): Correlation:{corr}")
+            if corr > 0.9:
+                return True
+            else:
+                return False
+        else:
+            print(f"[ERROR] DataLoadingRunnable.check_correlation(): Kmere and Contig Counts do not match.")
+            return False
