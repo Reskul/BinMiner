@@ -12,7 +12,7 @@ class FastaReader:
     def __init__(self, origin):
         self.origin = origin  # origin/Database 1=UniProtKB, 2=NCBI, 3=Prodigal
 
-    def read_raw_file(self, collection_file):
+    def read_header_only(self, collection_file):
         data_vec = collection_file.read().split('>')[1:]
         header = None
         if self.origin == self.UNIPROTKB:
@@ -81,16 +81,16 @@ class FastaReader:
         return header
 
     # read in multiple alignment as fasta
-    def read_ma_fasta(self, ma_file):
+    def read_full_fasta(self, fasta_file):
         # MA processing
-        data = ma_file.read()
-        data = data.split(">")[1:]
-        seq_cnt = len(data)
+        data_vec = fasta_file.read()
+        data_vec = data_vec.split(">")[1:]
+        seq_cnt = len(data_vec)
         seq_vec = None
         if self.origin == self.UNIPROTKB:
             seq_vec = np.empty(seq_cnt, dtype=FastaHeaderUniProtKB)
             i_idx = 0
-            for item in data:
+            for item in data_vec:
                 seq_fasta = item.split("\n")
 
                 name = seq_fasta[:1][0]
@@ -99,8 +99,19 @@ class FastaReader:
                 seq = "".join(seq)
                 seq_vec[i_idx] = Sequence(seq, name)
                 i_idx = i_idx + 1
+        elif self.origin == self.MYCC:
+            seq_vec = np.empty(seq_cnt, dtype=FastaHeaderMYCC)
+            i_idx = 0
+            for entry in data_vec:
+                parts = entry.split('\n')
+                info_line = parts[0]
+                seq = "".join(parts[1:])
+                h = FastaHeaderMYCC(info_line.strip())
+
+                seq_vec[i_idx] = Sequence(seq, i_idx, header=h)
+                i_idx += 1
         else:
-            pass
+            print(f"[ERROR] FastaReader.read_full_fasta(): Unknown Header.")
         return seq_vec
 
     # compare raw seq header with ma data
@@ -131,9 +142,9 @@ class FastaReader:
             seq.add_header(header_vec[old_idx])
         return sequence_vec
 
-    def read(self, ma_filename, collection_filename):
-        header_vec = self.read_raw_file(open(collection_filename))
-        ma_vec = self.read_ma_fasta(open(ma_filename))
+    def read_ma_and_header(self, ma_filename, collection_filename):
+        header_vec = self.read_header_only(open(collection_filename))
+        ma_vec = self.read_full_fasta(open(ma_filename))
         seq_vec = self.combine_sequence_data(header_vec, ma_vec)
 
         return seq_vec
@@ -143,5 +154,5 @@ if __name__ == '__main__':
     file = open('/home/rom/Documents/MGB/prodigal/10s_prot.fasta')
     print(type(file))
     reader = FastaReader(FastaReader.PRODIGAL)
-    header = reader.read_raw_file(file)
+    header = reader.read_header_only(file)
     print(header[0])
