@@ -140,32 +140,14 @@ class DataLoadingRunnable(QRunnable):
         cov_dim = len(lines[0].split('\t')) - 1
         data_len = len(lines)
 
-        names = []
-        covs = np.empty((1, cov_dim))
+        covs = np.empty((1, cov_dim), dtype=tuple)
         for l in lines:
             res = l.split('\t')
-            tup = res[0]
-            names.append(tup)
-            covs = np.vstack((covs, [float(val) for val in res[1:]]))
+            covs = np.vstack((covs, (res[0], [float(val) for val in res[1:]])))
 
-        # PCA on multidim Coverages
-        n_components = 1  # wont be changed because Histogramm can only show 1-dim
         covs = covs[1:]
-        if cov_dim > 1:
-            if self.DEBUG:
-                print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Applying PCA")
-            # Standard Scaler
-            scaled_data = StandardScaler().fit_transform(covs)  # Maybe use this if non-scaled fails
-            reduced_covs = PCA(n_components, random_state=5).fit_transform(covs)
-        else:
-            reduced_covs = covs
 
-        i = 0
-        collection = []
-        while i < data_len:
-            collection.append((names[i], reduced_covs[i]))
-            i += 1
-        return np.array(collection, dtype=tuple)
+        return np.array(covs, dtype=tuple)
 
     def check_correlation(self, kmeres, contigs) -> bool:
         if len(kmeres) == len(contigs):
