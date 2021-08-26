@@ -74,6 +74,15 @@ class InputGUI(QWidget):
         self.kmere_dataset_le.clicked.connect(self.km_clicked)
         f_layout.addRow(QLabel("K-Mere Data File"), self.kmere_dataset_le)
 
+        # TSNE Perplexity Parameter
+        perplex_lbl = QLabel("Perplexity of T-SNE")
+        self.perplex_spbox = QSpinBox()
+        self.perplex_spbox.setMinimum(5)
+        self.perplex_spbox.setMaximum(50)
+        self.perplex_spbox.setValue(30)
+
+        f_layout.addRow(perplex_lbl, self.perplex_spbox)
+
         # Radiobutton's Select next Section
         # o FetchMG Ergebnisse | o Selber erstellen
         # >< Ergebnisse Path   | >< Prodigal Path
@@ -212,7 +221,7 @@ class InputGUI(QWidget):
                     self.config.write(self.config.KMERE_KEY, self.kmere_dataset_path)
                     self.config.write(self.config.FETCHMGRES_KEY, self.fetchmg_result_path)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
-                                            self.kmere_dataset_path, fetchmg_respath=self.fetchmg_result_path)
+                                            self.kmere_dataset_path, self.perplex_spbox.value(), fetchmg_respath=self.fetchmg_result_path)
 
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
                 if self.cfg:
@@ -359,6 +368,8 @@ class SelectGUI(QWidget):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
         if self.data is not None:
             self.ax.clear()
+            self.ax.tick_params(axis='x', labelsize='14')
+            self.ax.tick_params(axis='y', labelsize='14')
             self.ax.patches = []
             x, y, z = self.update_kde()
             if highlighted_cont is not None:
