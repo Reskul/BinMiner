@@ -1,3 +1,6 @@
+from lib import Sequence
+
+
 class MarkerGene:
     def __init__(self, name):
         self.MG_name = name
@@ -24,17 +27,18 @@ class MarkerGene:
 
 
 class Contig:
-    def __init__(self, name, real_name=None):
-        self.CONTIG_name = name
+    def __init__(self, seq: Sequence, organism=None):
+        self.CONTIG_name = seq.header.contig
         self.mgs = []
-        self.REAL_name = real_name
+        self.organism = organism
         self.coverage = None
+        self.sequence = seq
 
     def __str__(self):
-        return f"{self.CONTIG_name}/{self.REAL_name}:{self.mgs}"
+        return f"{self.CONTIG_name}/{self.organism}:{self.mgs}"
 
     def __repr__(self):
-        return f"{self.CONTIG_name}/{self.REAL_name}:{self.mgs}"
+        return f"{self.CONTIG_name}/{self.organism}:{self.mgs}"
 
     def add_mg(self, marker_gene):
         self.mgs.append(marker_gene)
