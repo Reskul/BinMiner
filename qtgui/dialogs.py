@@ -61,9 +61,9 @@ class BinInfoDialog(QDialog):
 
         # histogramm groupbox
         histo_gbox = QGroupBox("Coverage Histogram")
-        self.figure = Figure(figsize=(10, 20), dpi=50)
-        self.c_ax = self.figure.add_subplot(211)
-        self.k_ax = self.figure.add_subplot(212)
+        self.figure = Figure(figsize=(20, 10), dpi=50)
+        self.c_ax = self.figure.add_subplot(121)
+        self.k_ax = self.figure.add_subplot(122)
         canvas = FigureCanvas(self.figure)
         save_btn = QPushButton("Save As")
         cut_btn = QPushButton("Cut Quartiles")
