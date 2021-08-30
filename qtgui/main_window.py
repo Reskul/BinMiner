@@ -41,13 +41,13 @@ class ControllingWindow(QMainWindow):
         elif self.STATUS == self.STATUS_SELECT:
             self.setCentralWidget(self.select_widget)
 
-    def process_input(self, contig_path, coverage_path, kmere_path, perplexity, fetchmg_respath=None,
+    def process_input(self, contig_path, coverage_path, kmere_path, perplexity, plotstate, fetchmg_respath=None,
                       prodigal_path=None, fetchmg_path=None):
         if fetchmg_respath is None and fetchmg_path is None:
             print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
         elif fetchmg_respath is not None:
             runnable = DataLoadingRunnable(self, contig_path, coverage_path, kmere_path, self.cfg.homepath, perplexity,
-                                           fetchmg_respath, debug=self.DEBUG)
+                                           plotstate, fetchmg_respath, debug=self.DEBUG)
             QThreadPool.globalInstance().start(runnable)
         elif fetchmg_path is not None:
             print(f"[ERROR] Not finished this part yet ;).")
@@ -62,3 +62,7 @@ class ControllingWindow(QMainWindow):
         self.STATUS = self.STATUS_SELECT
         self.select_widget = SelectGUI(datapoints, contigs, mgs, parent=self, debug=self.DEBUG)
         self.determine_widget()
+
+    @pyqtSlot(str)
+    def data_failed(self, message):
+        print("Loading Data Failed:", message)

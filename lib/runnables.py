@@ -20,16 +20,18 @@ class DataLoadingRunnable(QRunnable):
         self.kmere_path = args[3]
         self.DATADIR = args[4]
         self.perplexity = args[5]
+        self.plotstate = args[6]
         self.DEBUG = kwargs.get('debug', False)
         self.create = kwargs.get('create', False)
+        self.corr = 0
 
         dataset_name = ntpath.basename(self.contig_path)
 
         if not self.create:
-            self.fetchmg_respath = args[6]
+            self.fetchmg_respath = args[7]
         else:
-            self.fetchmg_binpath = args[6]
-            self.prodigal_binpath = args[7]
+            self.fetchmg_binpath = args[7]
+            self.prodigal_binpath = args[8]
 
             self.protein_filename = f"{dataset_name}_prot.fasta"
             self.mg_output_dir = f"mgs_{dataset_name}"
@@ -52,25 +54,54 @@ class DataLoadingRunnable(QRunnable):
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
 
         kmere_counts = self.read_data()
-        contigs, mgs = self.read_mgs()
-        # TODO Neues Layer einbauen mit dem dann contig daten und kmere getauscht/aneinandergefuegt usw. werden koennen
+        contigs, mgs = self.read_dna_data()
         if self.check_correlation(kmere_counts, contigs):
-            kmere_sums = np.sum(kmere_counts, 1)
-            x_mat = (kmere_counts.T / kmere_sums).T  # Norm data
-            data = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)  # T-SNE Data Dim reduction
             # zip Kmere_counts into Contig
             i = 0
             while i < len(contigs):
                 contigs[i].kmere_counts = kmere_counts[i]
                 i += 1
+            plotdata = None
+            if self.plotstate == 0:  # Plot Kmere Data
+                kmere_sums = np.sum(kmere_counts, 1)
+                x_mat = (kmere_counts.T / kmere_sums).T  # Norm data
+                # T-SNE Data Dim reduction
+                plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)
+            elif self.plotstate == 1:  # Plot Coverage Data
+                # Only if dimension is 2 oder higher
+                if len(contigs[0].coverage) > 1:
+                    covs = []
+                    for c in contigs:
+                        covs.append(c.coverage)
+                    covs = np.array(covs, dtype=float)
+                    plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(covs)
+                else:
+                    QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection,
+                                             Q_ARG(str, "Coverage is 1-Dimensional. Use different Method"))
+
+            elif self.plotstate == 2:  # Plot Combined Data
+                n = len(contigs)
+                cov_dim = len(contigs[0].coverage)
+                kmere_dim = len(contigs[0].kmere_counts)
+                x_mat = np.empty((n, kmere_dim + cov_dim))
+
+                for i in range(n):
+                    cov = contigs[i].coverage
+                    kmere = contigs[i].kmere_counts
+                    row = np.hstack((kmere, cov))
+                    x_mat[i] = row
+                # TODO normalize x_mat here to not over- or underweight coverage
+                plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)
+            else:
+                QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection, Q_ARG(str, "Unknown Plotstate"))
 
             QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
-                                     Q_ARG(type(mgs), mgs), Q_ARG(type(data), data))
+                                     Q_ARG(type(mgs), mgs), Q_ARG(type(plotdata), plotdata))
         else:
-            # TODO Was geht ab wenn die Correlation nicht stimmt???
-            pass
+            QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection,
+                                     Q_ARG(str, f"Correlation failed ({self.corr})"))
 
-    def read_mgs(self):
+    def read_dna_data(self):
         if self.create:
             mg_path = os.path.join(self.DATADIR, self.mg_output_dir)
         else:
@@ -106,7 +137,7 @@ class DataLoadingRunnable(QRunnable):
             for mg in mgs:
                 if mg.__contains__(c.CONTIG_name):
                     c.add_mg(mg.MG_name)
-            for entry in coverage_tup:  # TODO Again, too slow. better way?
+            for entry in coverage_tup:
                 if c.CONTIG_name == entry[0]:
                     c.coverage = entry[1]
             contigs[i_idx] = c
@@ -169,11 +200,11 @@ class DataLoadingRunnable(QRunnable):
             k_sigma = np.std(k_lengths)
             k_mean = np.mean(k_lengths)
             c_k_cov = 1 / n * sum((c_lengths - c_mean) * (k_lengths - k_mean))
-            corr = c_k_cov / (c_sigma * k_sigma)
+            self.corr = c_k_cov / (c_sigma * k_sigma)
             if self.DEBUG:
                 print(
-                    f"[DEBUG] DataLoadingRunnable.check_correlation(): Correlation:{corr}")
-            if corr > 0.9:
+                    f"[DEBUG] DataLoadingRunnable.check_correlation(): Correlation:{self.corr}")
+            if self.corr > 0.9:
                 return True
             else:
                 return False

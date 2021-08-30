@@ -35,10 +35,15 @@ class QFileInputLine(QLineEdit):
 
 
 class InputGUI(QWidget):
+    PLOTSTATE_KMERE = 0
+    PLOTSTATE_COV = 1
+    PLOTSTATE_COMB = 2
+
     def __init__(self, parent=None, cfg: Configurator = None, debug=False):
         super().__init__(parent)
         # INSTANCE VARIABLES
         self.DEBUG = debug
+        self.PLOTSTATE = 0
         self.config = cfg
         self.contig_sequences_path = None
         self.contig_coverage_path = None
@@ -117,6 +122,24 @@ class InputGUI(QWidget):
         self.binaries_input_gbox.setLayout(self.binaries_input_form)
         self.binaries_input_gbox.setVisible(False)
 
+        # SELECT METHOD
+        method_gbox = QGroupBox("Method")
+        kmere_plot_radbtn = QRadioButton("Plot K-mere Data")
+        kmere_plot_radbtn.setChecked(True)
+        cov_plot_radbtn = QRadioButton("Plot Coverage Data")
+        combined_plot_radbtn = QRadioButton("Plot Combined Data")
+
+        kmere_plot_radbtn.clicked.connect(self.radio_kmere_clicked)
+        cov_plot_radbtn.clicked.connect(self.radio_cov_clicked)
+        combined_plot_radbtn.clicked.connect(self.radio_comb_clicked)
+
+        method_vbox = QVBoxLayout()
+        method_vbox.addWidget(kmere_plot_radbtn)
+        method_vbox.addWidget(cov_plot_radbtn)
+        method_vbox.addWidget(combined_plot_radbtn)
+
+        method_gbox.setLayout(method_vbox)
+
         # "Next" Button
         next_btn = QPushButton("Next")
         next_btn.clicked.connect(self.next_clicked)
@@ -139,6 +162,7 @@ class InputGUI(QWidget):
         general_layout.addWidget(radio_gbox)
         general_layout.addWidget(self.fetchmg_results_gbox)
         general_layout.addWidget(self.binaries_input_gbox)
+        general_layout.addWidget(method_gbox)
         general_layout.addLayout(btn_layout)
         general_layout.addStretch(1)
         self.setLayout(general_layout)
@@ -210,6 +234,15 @@ class InputGUI(QWidget):
             self.fetchmg_binpath = path
             self.fetchmg_path_le.setText(path)
 
+    def radio_kmere_clicked(self):
+        self.PLOTSTATE = self.PLOTSTATE_KMERE
+
+    def radio_cov_clicked(self):
+        self.PLOTSTATE = self.PLOTSTATE_COV
+
+    def radio_comb_clicked(self):
+        self.PLOTSTATE = self.PLOTSTATE_COMB
+
     def next_clicked(self):
         if self.contig_sequences_path is not None and self.kmere_dataset_path is not None:
             if self.results_radbtn.isChecked() and self.fetchmg_result_path is not None:
@@ -219,7 +252,8 @@ class InputGUI(QWidget):
                     self.config.write(self.config.KMERE_KEY, self.kmere_dataset_path)
                     self.config.write(self.config.FETCHMGRES_KEY, self.fetchmg_result_path)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
-                                            self.kmere_dataset_path, self.perplex_spbox.value(), fetchmg_respath=self.fetchmg_result_path)
+                                            self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
+                                            fetchmg_respath=self.fetchmg_result_path)
 
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
                 if self.cfg:
@@ -229,8 +263,8 @@ class InputGUI(QWidget):
                     self.config.write(self.config.FETCHMG_KEY, self.fetchmg_binpath)
                     self.config.write(self.config.PRODIGAL_KEY, self.prodigal_binpath)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
-                                            self.kmere_dataset_path, prodigal_path=self.prodigal_binpath,
-                                            fetchmg_path=self.fetchmg_binpath)
+                                            self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
+                                            prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
 
