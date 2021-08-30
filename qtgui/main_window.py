@@ -10,7 +10,7 @@ class ControllingWindow(QMainWindow):
     STATUS_SELECT = 1
     STATUS = STATUS_INPUT
 
-    def __init__(self, x: int, y: int, w: int, h: int, operating_system: str, cfg: Configurator = None, parent=None,
+    def __init__(self, x: int, y: int, w: int, h: int, cfg: Configurator = None, parent=None,
                  debug=False):
         super().__init__(parent)
         # GENERAL Settings ----------
