@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     working_path = None
     if operating_system == 'Linux':
-        working_path = os.path.expanduser("~/Documents/MGB")
+        working_path = os.path.expanduser("~/MGB")
         if not os.path.exists(working_path):
             os.makedirs(working_path)
         elif DEBUG:
