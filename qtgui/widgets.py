@@ -5,8 +5,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from matplotlib import patches
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+from matplotlib.backend_bases import _Mode
 from matplotlib.figure import Figure
 import numpy as np
 
@@ -32,6 +34,16 @@ class QFileInputLine(QLineEdit):
 
     def mousePressEvent(self, a0: QtGui.QMouseEvent) -> None:
         self.clicked.emit()
+
+
+class MyNavigationToolbar(NavigationToolbar2QT):
+    def _init_toolbar(self):
+        pass
+
+    def home(self, *args):
+        super().home(args)
+        self.parent.x_lim = None
+        self.parent.y_lim = None
 
 
 class InputGUI(QWidget):
@@ -323,6 +335,9 @@ class SelectGUI(QWidget):
         self.selected_vec = np.zeros(len(self.data))
         self.grid_points = 100
 
+        self.x_lim = None
+        self.y_lim = None
+
         self.analyze_widget = BinInfoDialog(self.parent(), contigs=contigs, mgs=mgs, debug=self.DEBUG)
 
         # BACK BUTTON
@@ -332,18 +347,19 @@ class SelectGUI(QWidget):
 
         # Data Visualization ----------
         fig = Figure()
-        self.ax = fig.add_subplot(111)
+        self.ax: Axes = fig.add_subplot(111)
         self.canvas = FigureCanvas(fig)
         # self.canvas.resize(300, 300)
-        toolbar = NavigationToolbar(self.canvas, self)
+        self.toolbar = MyNavigationToolbar(self.canvas, self)
 
         diagram_layout = QGridLayout()
         diagram_layout.addWidget(back_btn, 0, 0, 1, 1)
         diagram_layout.addWidget(self.canvas, 1, 0, 1, 3)
-        diagram_layout.addWidget(toolbar, 2, 0, 1, 1)
+        diagram_layout.addWidget(self.toolbar, 2, 0, 1, 1)
 
         # Matplotlib Interaction ----------
         self.canvas.mpl_connect("button_press_event", self.on_mpl_press)
+        self.canvas.mpl_connect("button_release_event", self.on_mpl_release)
 
         # Process Selected Layout ----------
         process_sel_btn = QPushButton("Ausgewählte Analysieren")
@@ -400,6 +416,11 @@ class SelectGUI(QWidget):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
         if self.data is not None:
             self.ax.clear()
+            if self.x_lim is not None and self.y_lim is not None:
+                if self.DEBUG:
+                    print(f"[DEBUG] SelectGUI.update_plot(): Setting Axes View Limits")
+                self.ax.set_xlim(left=self.x_lim[0], right=self.x_lim[1])
+                self.ax.set_ylim(bottom=self.y_lim[0], top=self.y_lim[1])
             self.ax.tick_params(axis='x', labelsize='14')
             self.ax.tick_params(axis='y', labelsize='14')
             self.ax.patches = []
@@ -444,33 +465,38 @@ class SelectGUI(QWidget):
 
     def on_mpl_press(self, e):
         """Matplotlib 'press' Event, calculates path and points selected by event"""
-        if self.DEBUG:
-            print("[DEBUG] MainWindow.on_mpl_press()")
-            print("event.xdata", e.xdata)
-            print("event.ydata", e.ydata)
-        path_list = []
-        if self.cont_data is not None:
-            for path_collection in self.cont_data.collections:
-                check, _ = path_collection.contains(e)
-                if check:
-                    # path.contains_point()->bool oder path.contains_points()-> bool array
-                    paths = path_collection.get_paths()
-                    if self.DEBUG:
-                        print(len(paths))
-                    for p in paths:
-                        if p.contains_point((e.xdata, e.ydata)):
-                            path_list.append(p)
-
-            last = len(path_list) - 1
-            self.selected_vec = np.array(path_list[last].contains_points(self.data), dtype=bool)
+        if self.toolbar.mode == _Mode.NONE:
             if self.DEBUG:
-                print("[DEBUG] SelectGUI.on_mpl_press()")
-                print("Nbr of found paths:", len(path_list))
-                print(self.selected_vec[0], np.shape(self.selected_vec), '\n', np.shape(self.data))
+                print(f"[DEBUG] MainWindow.on_mpl_press(): X:{e.xdata} Y:{e.ydata}")
 
-            self.update_plot(highlighted_cont=path_list[last])  # , col='green')
-            self.analyze_widget.update_selected(self.selected_vec)
-            self.set_selected_cnt()
+            path_list = []
+            if self.cont_data is not None:
+                for path_collection in self.cont_data.collections:
+                    check, _ = path_collection.contains(e)
+                    if check:
+                        # path.contains_point()->bool oder path.contains_points()-> bool array
+                        paths = path_collection.get_paths()
+                        for p in paths:
+                            if p.contains_point((e.xdata, e.ydata)):
+                                path_list.append(p)
+
+                last = len(path_list) - 1
+                self.selected_vec = np.array(path_list[last].contains_points(self.data), dtype=bool)
+                if self.DEBUG:
+                    print("[DEBUG] SelectGUI.on_mpl_press()")
+                    print("Nbr of found paths:", len(path_list))
+                    print(self.selected_vec[0], np.shape(self.selected_vec), '\n', np.shape(self.data))
+
+                self.update_plot(highlighted_cont=path_list[last])  # , col='green')
+                self.analyze_widget.update_selected(self.selected_vec)
+                self.set_selected_cnt()
+
+    def on_mpl_release(self, e):
+        if self.toolbar.mode == _Mode.ZOOM or self.toolbar.mode == _Mode.PAN:
+            if self.DEBUG:
+                print(f"[DEBUG] SelectGUI.on_mpl_release(): Getting Axes View Limits.")
+            self.x_lim = self.ax.get_xlim()
+            self.y_lim = self.ax.get_ylim()
 
     def analyze_selected(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
