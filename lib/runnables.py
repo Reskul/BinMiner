@@ -171,15 +171,20 @@ class DataLoadingRunnable(QRunnable):
         lines_nbr = len(lines)
         lines = lines[:lines_nbr - 1]
 
-        cov_dim = len(lines[0].split('\t')) - 1
+        cov_dim = len(lines[0].split('\t'))  # TODO: check if this -1 is needed or not
         data_len = len(lines)
+        print(cov_dim)
+        if self.DEBUG:
+            print(f"[DEBUG] DataLoadingRunnable.read_coverage(): CovDim:{cov_dim}")
 
-        covs = np.empty((1, cov_dim), dtype=tuple)
+        covs = np.zeros((1, cov_dim), dtype=np.ndarray)
         for l in lines:
             res = l.split('\t')
-            covs = np.vstack((covs, (res[0], [float(val) for val in res[1:]])))
+            covs = np.vstack((covs, np.array([res[0], [float(val) for val in res[1:]]])))
 
         covs = covs[1:]
+        if self.DEBUG:
+            print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Cov's:{covs[0]}")
 
         return np.array(covs, dtype=tuple)
 

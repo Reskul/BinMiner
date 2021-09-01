@@ -7,10 +7,14 @@ from PyQt5.QtWidgets import *
 
 DEFAULT_WIDTH = 1280
 DEFAULT_HEIGHT = 720
-DEBUG = True
+DEBUG = False
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '-debug' or sys.argv[1] == '-d':
+            DEBUG = True
 
     operating_system = platform.system()
 
@@ -25,7 +29,7 @@ if __name__ == '__main__':
     elif DEBUG:
         print(f"[DEBUG]{working_path} already exists.")
     if working_path:
-        cfg = Configurator(working_path)
+        cfg = Configurator(working_path, DEBUG)
         size = app.primaryScreen().size()
         x = (size.width() / 2) - (DEFAULT_WIDTH / 2)
         y = (size.height() / 2) - (DEFAULT_HEIGHT / 2)
