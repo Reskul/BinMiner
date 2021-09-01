@@ -18,7 +18,7 @@ class Configurator:
 
     def __init__(self, path):
         self.homepath = path
-        filepath = f"{path}/paths.json"
+        filepath = f"{path}{os.path.sep}paths.json"
         if os.path.exists(filepath):
             self.cfg_file = open(filepath, "r+")
             self.keys = json.load(self.cfg_file)

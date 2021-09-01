@@ -17,12 +17,13 @@ if __name__ == '__main__':
     working_path = None
     if operating_system == 'Linux':
         working_path = os.path.expanduser("~/MGB")
-        if not os.path.exists(working_path):
-            os.makedirs(working_path)
-        elif DEBUG:
-            print(f"[DEBUG]{working_path} already exists.")
     elif operating_system == 'Windows':
-        working_path = os.path.expandvars(R"C:\Users\$USERNAME$\Documents\MGB")
+        working_path = os.path.expandvars(R"C:\Users\$USERNAME\Documents\MGB")
+
+    if not os.path.exists(working_path):
+        os.makedirs(working_path)
+    elif DEBUG:
+        print(f"[DEBUG]{working_path} already exists.")
     if working_path:
         cfg = Configurator(working_path)
         size = app.primaryScreen().size()
@@ -34,5 +35,3 @@ if __name__ == '__main__':
         sys.exit(app.exec())
     else:
         print(f"[ERROR] Unknown operating system or pathing problems.")
-
-
