@@ -284,7 +284,8 @@ class InputGUI(QWidget):
         if self.last_ckbox.isChecked():
             # Fill LineEdits with Values
             if not self.config.is_new:
-                print(f"[DEBUG] InputGUI.lastckbox_clicked(): Config wurde NICHT neu erstellt.")
+                if self.DEBUG:
+                    print(f"[DEBUG] InputGUI.lastckbox_clicked(): Config wurde NICHT neu erstellt.")
                 contig_seq = self.config.read(Configurator.CONTIGSEQ_KEY)
                 contig_cov = self.config.read(Configurator.CONTIGCOV_KEY)
                 kmere_set = self.config.read(Configurator.KMERE_KEY)
