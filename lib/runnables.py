@@ -139,7 +139,7 @@ class DataLoadingRunnable(QRunnable):
                     c.add_mg(mg.MG_name)
             for entry in coverage_tup:
                 if c.CONTIG_name == entry[0]:
-                    c.coverage = entry[1]
+                    c.coverage = np.array([float(val) for val in entry[1:]], dtype=float)
             contigs[i_idx] = c
             i_idx += 1
 
@@ -173,20 +173,19 @@ class DataLoadingRunnable(QRunnable):
 
         cov_dim = len(lines[0].split('\t'))  # TODO: check if this -1 is needed or not
         data_len = len(lines)
-        print(cov_dim)
         if self.DEBUG:
             print(f"[DEBUG] DataLoadingRunnable.read_coverage(): CovDim:{cov_dim}")
 
-        covs = np.zeros((1, cov_dim), dtype=np.ndarray)
+        covs = np.zeros((1, cov_dim), dtype=str)
         for l in lines:
             res = l.split('\t')
-            covs = np.vstack((covs, np.array([res[0], [float(val) for val in res[1:]]])))
+            covs = np.vstack((covs, np.array(res, dtype=str)))  # [res[0], [float(val) for val in res[1:]]]
 
         covs = covs[1:]
         if self.DEBUG:
-            print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Cov's:{covs[0]}")
+            print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Cov's:{covs[0]} Type:{type(covs)}")
 
-        return np.array(covs, dtype=tuple)
+        return covs
 
     def check_correlation(self, kmeres, contigs) -> bool:
         if len(kmeres) == len(contigs):

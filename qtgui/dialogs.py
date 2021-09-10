@@ -143,16 +143,13 @@ class BinInfoDialog(QDialog):
     #         self.sel_contigs = contigs
 
     def calc_values(self):
-        # print(f"DIGGAH {self.sel_contigs}")
         sel_contigs = self.contigs[self.selected]
         coverages = []
         kmere_counts = []
         self.count_arr = np.zeros(len(self.mgs), dtype=int)
         for c in sel_contigs:
             c_mgs = c.mgs
-            # print(f"LOL {c}")
             for mg in c_mgs:
-                # print(f"ROFL {mg}")
                 self.count_arr[self.mg_dict[mg]] += 1
             coverages.append(c.coverage)
             kmere_counts.append(c.kmere_counts)
