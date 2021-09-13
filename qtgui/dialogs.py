@@ -177,7 +177,7 @@ class BinInfoDialog(QDialog):
 
         kmere_counts = np.array(kmere_counts, dtype=int)
         scaled_kmere_cnt = StandardScaler().fit_transform(kmere_counts)
-        kmere_counts = PCA(n_components=n_components, random_state=5).fit_transform(kmere_counts)
+        kmere_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
 
         coverages = np.array(coverages, dtype=float)
         if len(coverages[0]) > 1:
