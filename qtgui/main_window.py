@@ -61,7 +61,7 @@ class ControllingWindow(QMainWindow):
         self.contigs = contigs
         self.mgs = mgs
         self.STATUS = self.STATUS_SELECT
-        self.select_widget = SelectGUI(datapoints, contigs, mgs, parent=self, debug=self.DEBUG)
+        self.select_widget = SelectGUI(datapoints, contigs, mgs, parent=self, debug=self.DEBUG, test=self.TEST)
         self.determine_widget()
 
     @pyqtSlot(str)

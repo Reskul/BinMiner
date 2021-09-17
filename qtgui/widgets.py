@@ -324,7 +324,7 @@ class InputGUI(QWidget):
 
 
 class SelectGUI(QWidget):
-    def __init__(self, kmere_data, contigs, mgs, parent=None, debug=False):
+    def __init__(self, kmere_data, contigs, mgs, parent=None, debug=False, test=False):
         super().__init__(parent)
         # VARIABLE Initialization
         self.DEBUG = debug

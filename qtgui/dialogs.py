@@ -74,8 +74,8 @@ class BinInfoDialog(QDialog):
         self.cut_ckbox.clicked.connect(self.cut_clicked)
 
         grid = QGridLayout()
-        grid.addWidget(canvas, 0, 0, 1, 3)
-        grid.addWidget(save_btn, 1, 2)
+        grid.addWidget(canvas, 0, 0, 1, 6)
+        grid.addWidget(save_btn, 1, 5)
         grid.addWidget(self.cut_ckbox, 1, 0)
         histo_gbox.setLayout(grid)
 
