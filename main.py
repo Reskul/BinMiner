@@ -8,13 +8,16 @@ from PyQt5.QtWidgets import *
 DEFAULT_WIDTH = 1280
 DEFAULT_HEIGHT = 720
 DEBUG = False
+TEST = False
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '-debug' or sys.argv[1] == '-d':
-            DEBUG = True
+    arguments = ['-d', '-t']  # -d: Debug True, -t: Test true
+    ap = ArgParser(arguments)
+    given_args = ap.parse(sys.argv)
+    DEBUG = given_args['-d']
+    TEST = given_args['-t']
 
     operating_system = platform.system()
 
@@ -33,7 +36,7 @@ if __name__ == '__main__':
         size = app.primaryScreen().size()
         x = (size.width() / 2) - (DEFAULT_WIDTH / 2)
         y = (size.height() / 2) - (DEFAULT_HEIGHT / 2)
-        mw = ControllingWindow(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, cfg=cfg, debug=DEBUG)
+        mw = ControllingWindow(x, y, DEFAULT_WIDTH, DEFAULT_HEIGHT, cfg=cfg, debug=DEBUG, test=TEST)
         mw.show()
 
         sys.exit(app.exec())

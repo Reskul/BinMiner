@@ -11,10 +11,11 @@ class ControllingWindow(QMainWindow):
     STATUS = STATUS_INPUT
 
     def __init__(self, x: int, y: int, w: int, h: int, cfg: Configurator = None, parent=None,
-                 debug=False):
+                 debug=False, test=False):
         super().__init__(parent)
         # GENERAL Settings ----------
         self.DEBUG = debug
+        self.TEST = test
         if cfg:
             self.cfg = cfg
 
