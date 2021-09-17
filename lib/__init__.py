@@ -4,6 +4,7 @@ from .fasta_reader import *
 from .data_constructs import *
 from .cfg import *
 from .runnables import *
+from.argparser import *
 
 __all__ = ['QtWaitingSpinner', 'FastaHeaderUniProtKB', 'FastaHeaderNCBI', 'FastaReader', 'Sequence', 'MarkerGene',
-           'Contig', 'Configurator', 'DataLoadingRunnable']
+           'Contig', 'Configurator', 'DataLoadingRunnable', 'ArgParser']
