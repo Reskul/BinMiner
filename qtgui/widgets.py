@@ -79,20 +79,20 @@ class InputGUI(QWidget):
         # Contig DNA Sequence ----------
         self.contig_dataset_le = QFileInputLine()
         self.contig_dataset_le.clicked.connect(self.cd_clicked)
-        f_layout.addRow(QLabel("Contig Sequences File"), self.contig_dataset_le)
+        f_layout.addRow(QLabel("Contig sequence File (fasta)"), self.contig_dataset_le)
 
         # Contig Coverage File
         self.contig_coverage_le = QFileInputLine()
         self.contig_coverage_le.clicked.connect(self.cc_clicked)
-        f_layout.addRow((QLabel("Contig Coverage File")), self.contig_coverage_le)
+        f_layout.addRow((QLabel("Contig coverage file")), self.contig_coverage_le)
 
         # K-Mere Data ----------
         self.kmere_dataset_le = QFileInputLine()
         self.kmere_dataset_le.clicked.connect(self.km_clicked)
-        f_layout.addRow(QLabel("K-Mere Data File"), self.kmere_dataset_le)
+        f_layout.addRow(QLabel("K-mer data file (.npy)"), self.kmere_dataset_le)
 
         # TSNE Perplexity Parameter
-        perplex_lbl = QLabel("Perplexity of T-SNE")
+        perplex_lbl = QLabel("T-SNE perplexity")
         self.perplex_spbox = QSpinBox()
         self.perplex_spbox.setMinimum(5)
         self.perplex_spbox.setMaximum(50)
@@ -136,10 +136,10 @@ class InputGUI(QWidget):
 
         # SELECT METHOD
         method_gbox = QGroupBox("Method")
-        kmere_plot_radbtn = QRadioButton("Plot K-mere Data")
+        kmere_plot_radbtn = QRadioButton("Plot K-mer data")
         kmere_plot_radbtn.setChecked(True)
-        cov_plot_radbtn = QRadioButton("Plot Coverage Data")
-        combined_plot_radbtn = QRadioButton("Plot Combined Data")
+        cov_plot_radbtn = QRadioButton("Plot coverage data")
+        combined_plot_radbtn = QRadioButton("Plot combined data")
 
         kmere_plot_radbtn.clicked.connect(self.radio_kmere_clicked)
         cov_plot_radbtn.clicked.connect(self.radio_cov_clicked)
@@ -157,7 +157,7 @@ class InputGUI(QWidget):
         next_btn.clicked.connect(self.next_clicked)
 
         # Same Procedure as last year Miss Sophie?
-        self.last_ckbox = QCheckBox("Use Last Values")
+        self.last_ckbox = QCheckBox("Use last values")
         self.last_ckbox.clicked.connect(self.lastckbox_clicked)
 
         btn_layout = QGridLayout()
@@ -182,7 +182,7 @@ class InputGUI(QWidget):
     def cd_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select Contig Fasta-Data File', self.config.homepath,
         #                                        QFileDialog.ShowDirsOnly)
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Fasta-Data File', self.config.homepath,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig fasta-data file', self.config.homepath,
                                               'Fasta Files (*.fasta *.faa *.fa *.fna)')
         if path:
             self.contig_dataset_le.setText(path)
@@ -194,7 +194,7 @@ class InputGUI(QWidget):
         else:
             dirname = self.cfg.homepath
 
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Coverage File', dirname,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig coverage file', dirname,
                                               'Depth/Text Files (*.depth *.depth.txt)')
         if path:
             self.contig_coverage_le.setText(path)
@@ -203,7 +203,7 @@ class InputGUI(QWidget):
     def km_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select K-mere Data Directory', self.config.homepath,
         #                                         QFileDialog.ShowDirsOnly)
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Precomputed K-mere Data', self.config.homepath,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select precomputed K-mer data', self.config.homepath,
                                               'Numpy Files (*.npy)')
         if path:
             self.kmere_dataset_le.setText(path)
@@ -226,21 +226,21 @@ class InputGUI(QWidget):
             self.binaries_input_gbox.setVisible(True)
 
     def fmg_clicked(self):
-        path = QFileDialog.getExistingDirectory(self, 'Select FetchMG Result Directory', self.config.homepath,
+        path = QFileDialog.getExistingDirectory(self, 'Select FetchMG result directory', self.config.homepath,
                                                 QFileDialog.ShowDirsOnly)
         if path:
             self.fetchmg_res_le.setText(path)
             self.fetchmg_result_path = path
 
     def pp_clicked(self):
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Prodigal Binary', self.DEFAULTPATH,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Prodigal binary', self.DEFAULTPATH,
                                               'Binaries (*.linux)')
         if path:
             self.prodigal_binpath = path
             self.prodigal_path_le.setText(path)
 
     def fmgp_clicked(self):
-        path, _ = QFileDialog.getOpenFileName(self, 'Select FetchMG Script', self.DEFAULTPATH,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select FetchMG script', self.DEFAULTPATH,
                                               'Perl Scripts (*.pl)')
         if path:
             self.fetchmg_binpath = path
@@ -363,7 +363,7 @@ class SelectGUI(QWidget):
         self.canvas.mpl_connect("button_release_event", self.on_mpl_release)
 
         # Process Selected Layout ----------
-        process_sel_btn = QPushButton("Ausgewählte Analysieren")
+        process_sel_btn = QPushButton("Check selected")
         process_sel_btn.clicked.connect(self.analyze_selected)
         self.sel_lbl = QLabel()
         self.set_selected_cnt()
@@ -409,9 +409,9 @@ class SelectGUI(QWidget):
         if self.selected_vec is not None:
             count = sum(self.selected_vec)
             self.n_selected = count
-            self.sel_lbl.setText(f"Ausgewählt: {count}")
+            self.sel_lbl.setText(f"Selected: {count}")
         else:
-            self.sel_lbl.setText(f"Ausgewählt: --")
+            self.sel_lbl.setText(f"Selected: --")
 
     def update_plot(self, highlighted_cont=None, col=None):
         """Updates Matplotlib plots, is called when stuff changed in Data"""

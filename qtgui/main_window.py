@@ -3,6 +3,8 @@ from PyQt5.QtCore import Qt, pyqtSlot, QThreadPool
 from .widgets import *
 from lib import *
 
+TOOLNAME = "BinMiner"
+
 
 class ControllingWindow(QMainWindow):
     TAG = "ControllingWindow"
@@ -19,7 +21,7 @@ class ControllingWindow(QMainWindow):
         if cfg:
             self.cfg = cfg
 
-        self.setWindowTitle("Sequence Mining Tool")
+        self.setWindowTitle(TOOLNAME)
         self.setGeometry(x, y, w, h)
 
         self.contigs = None

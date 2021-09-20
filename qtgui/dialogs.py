@@ -230,11 +230,11 @@ class BinInfoDialog(QDialog):
         self.k_ax.hist(kmere, bins=k_bins_round)
 
         self.c_ax.set_title("Coverage of selected contigs")
-        self.k_ax.set_title("K-mere distribution of selected contigs")
+        self.k_ax.set_title("K-mer distribution of selected contigs")
 
         self.c_ax.set_xlabel("Coverage")
         self.c_ax.set_ylabel("Frequency")
-        self.k_ax.set_xlabel("K-mere Count")
+        self.k_ax.set_xlabel("K-mer PC1")
         self.k_ax.set_ylabel("Frequency")
 
         self.figure.canvas.draw_idle()
