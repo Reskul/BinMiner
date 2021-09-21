@@ -14,6 +14,8 @@ import numpy as np
 
 from KDEpy import FFTKDE
 from skimage.feature import peak_local_max
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from lib import *
 from .dialogs import BinInfoDialog
@@ -329,17 +331,24 @@ class SelectGUI(QWidget):
         # VARIABLE Initialization
         self.DEBUG = debug
         self.data = kmere_data
+        self.contigs = contigs
+        self.mgs = mgs
+        self.mg_dict = {}
+        for i_idx in range(len(mgs)):
+            self.mg_dict[mgs[i_idx].MG_name] = i_idx
         self.cont_data = None
         self.n_selected = 0
+        self.completeness = None
+        self.contamination = None
         self.bw = 1
         self.contours = 25
-        self.selected_vec = np.zeros(len(self.data))
+        self.selected_vec = None
         self.grid_points = 100
 
         self.x_lim = None
         self.y_lim = None
 
-        self.analyze_widget = BinInfoDialog(self.parent(), contigs=contigs, mgs=mgs, debug=self.DEBUG)
+        self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
         # BACK BUTTON
         back_btn = QPushButton("<- Back")
@@ -362,16 +371,21 @@ class SelectGUI(QWidget):
         self.canvas.mpl_connect("button_press_event", self.on_mpl_press)
         self.canvas.mpl_connect("button_release_event", self.on_mpl_release)
 
-        # Process Selected Layout ----------
+        # Info Bar Layout ----------
         process_sel_btn = QPushButton("Check selected")
-        process_sel_btn.clicked.connect(self.analyze_selected)
-        self.sel_lbl = QLabel()
-        self.set_selected_cnt()
-        selected_layout = QHBoxLayout()
-        selected_layout.addWidget(self.sel_lbl)
-        selected_layout.addWidget(process_sel_btn)
+        process_sel_btn.clicked.connect(self.show_diagram_dialog)
+        self.sel_lbl = QLabel("Selected: --")
+        self.completeness_lbl = QLabel("Completeness: --")
+        self.contamination_lbl = QLabel("Contamination: --")
 
-        diagram_layout.addLayout(selected_layout, 2, 2, 1, 1)
+        info_bar_layout = QHBoxLayout()
+        info_bar_layout.addWidget(self.completeness_lbl)
+        info_bar_layout.addWidget(self.contamination_lbl)
+        info_bar_layout.addWidget(self.sel_lbl)
+        info_bar_layout.addWidget(process_sel_btn)
+
+        diagram_layout.addLayout(info_bar_layout, 2, 2, 1, 1)
+        self.update_info_bar()
 
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
@@ -405,13 +419,17 @@ class SelectGUI(QWidget):
         self.update_plot()
         self.setLayout(layout)
 
-    def set_selected_cnt(self):
+    def update_info_bar(self):
         if self.selected_vec is not None:
             count = sum(self.selected_vec)
             self.n_selected = count
             self.sel_lbl.setText(f"Selected: {count}")
+            self.completeness_lbl.setText(f"Completeness: {self.completeness}")
+            self.contamination_lbl.setText(f"Contamination: {self.contamination}")
         else:
             self.sel_lbl.setText(f"Selected: --")
+            self.completeness_lbl.setText("Completeness: --")
+            self.contamination_lbl.setText("Contamination: --")
 
     def update_plot(self, highlighted_cont=None, col=None):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
@@ -489,8 +507,9 @@ class SelectGUI(QWidget):
                     print(self.selected_vec[0], np.shape(self.selected_vec), '\n', np.shape(self.data))
 
                 self.update_plot(highlighted_cont=path_list[last])  # , col='green')
-                self.analyze_widget.update_selected(self.selected_vec)
-                self.set_selected_cnt()
+                sel_coverage, sel_kmer_counts = self.calc_values()
+                self.analyze_widget.update_data(sel_kmer_counts, sel_coverage)
+                self.update_info_bar()
 
     def on_mpl_release(self, e):
         if self.toolbar.mode == _Mode.ZOOM or self.toolbar.mode == _Mode.PAN:
@@ -499,11 +518,43 @@ class SelectGUI(QWidget):
             self.x_lim = self.ax.get_xlim()
             self.y_lim = self.ax.get_ylim()
 
-    def analyze_selected(self):
+    def calc_values(self):
+        sel_contigs = self.contigs[self.selected_vec]
+        sel_coverages = []
+        sel_kmer_counts = []
+        n_mgs = len(self.mgs)
+        contained_mgs = np.zeros(n_mgs, dtype=int)  # counting which markergenes exist in selection
+        for c in sel_contigs:
+            c_mgs = c.mgs
+            for mg in c_mgs:
+                contained_mgs[self.mg_dict[mg]] += 1
+            sel_coverages.append(c.coverage)
+            sel_kmer_counts.append(c.kmere_counts)
+
+        val_greater_zero = [val > 0 for val in contained_mgs]
+        self.completeness = sum(val_greater_zero) / n_mgs
+        if self.DEBUG:
+            print(f"[DEBUG] SelectGUI.calc_values()\n"
+                  f"\tCounted MG's:{self.count_arr}\n"
+                  f"\tValues greater than 0:{val_greater_zero}\n"
+                  f"\tCompleteness:{self.completeness}")
+        max_cnt = max(contained_mgs)
+        i_max = 2
+        contam = 0
+        while i_max <= max_cnt:
+            existing = sum([val == i_max for val in contained_mgs])
+            contam += existing * (i_max - 1)
+            i_max += 1
+        self.contamination = contam / n_mgs
+
+        if self.DEBUG:
+            print(f"[DEBUG] SelectGUI.calc_values(): Contamination:{contam}")
+
+        return sel_coverages, sel_kmer_counts
+
+    def show_diagram_dialog(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
         if self.n_selected > 0:
-            self.analyze_widget.update_selected(self.selected_vec)
-
             if not self.analyze_widget.isVisible():
                 self.analyze_widget.show()
 

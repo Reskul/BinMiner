@@ -21,22 +21,18 @@ class BinInfoDialog(QDialog):
     SCOTT = 1
     FREEDMAN_DIACONIS = 2
 
-    def __init__(self, parent, selected: np.ndarray = None, contigs=None, mgs=None, debug=False):
+    def __init__(self, parent, debug=False):
         super().__init__(parent)
         self.setWindowTitle("Selected Bin")
         self.DEBUG = debug
         self.parent = parent
-        self.mg_dict = {}
-        self.selected = selected
-        self.contigs = contigs
-        self.count_arr = np.array([])
-        self.sel_contigs = None
-        self.mgs = self.set_markergenes(mgs)
 
+        self.selected_kmer = None
+        self.selected_cov = None
+
+        self.count_arr = np.array([])
         self.cut_quartiles = False
 
-        self.completeness_nbr_lbl = None
-        self.containment_nbr_lbl = None
         self.cut_ckbox = None
 
         self.figure = None
@@ -46,21 +42,10 @@ class BinInfoDialog(QDialog):
         self.init_gui()
 
     def init_gui(self):
-        numbers_gbox = QGroupBox("Statistics")
-        completeness_lbl = QLabel("Completeness:")
-        self.completeness_nbr_lbl = QLabel()
-
-        containment_lbl = QLabel("Contamination:")
-        self.containment_nbr_lbl = QLabel()
-
-        form_layout = QFormLayout()
-        form_layout.addRow(completeness_lbl, self.completeness_nbr_lbl)
-        form_layout.addRow(containment_lbl, self.containment_nbr_lbl)
-
-        numbers_gbox.setLayout(form_layout)
+        # Maybe insert some buttons for output selected sequences as file and stuff
 
         # histogramm groupbox
-        histo_gbox = QGroupBox("Coverage Histogram")
+        histo_gbox = QGroupBox("Histograms of Coverage and K-mer PC1")
         self.figure = Figure(figsize=(20, 10), dpi=50)
         self.c_ax = self.figure.add_subplot(121)
         self.k_ax = self.figure.add_subplot(122)
@@ -80,7 +65,6 @@ class BinInfoDialog(QDialog):
         histo_gbox.setLayout(grid)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(numbers_gbox)
         hbox.addWidget(histo_gbox)
 
         self.setLayout(hbox)
@@ -101,98 +85,120 @@ class BinInfoDialog(QDialog):
         else:
             self.cut_quartiles = False
         self.update_gui()
-
-    def update_selected(self, selected: np.ndarray):
-        self.selected = selected
-        if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.update_selected()")
-
-        if self.isVisible():
-            self.update_gui()
-
-    def set_contigs(self, contigs: Contig):
-        self.contigs = contigs
-        if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.set_contigs()\n"
-                  f"\tContigs:{contigs}")
-
-    def set_markergenes(self, mgs):
-        if self.DEBUG:
-            print(f"[DEBUG] Len MGS:{len(mgs)}")
-        # form into dictionary
-        for i_idx in range(len(mgs)):
-            self.mg_dict[mgs[i_idx].MG_name] = i_idx
-
-        if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.set_markergenes()\n"
-                  f"\tMG_Dictionary:{self.mg_dict}")
-        return mgs
-
-    def set_contigs_and_markergenes(self, contigs, mgs):
-        self.contigs = contigs
-        return contigs, self.set_markergenes(mgs)
-
-    # def find_selected_contigs(self):
-    #     if self.selected is not None:
-    #         contigs = self.contigs[self.selected]
+    # def update_selected(self, selected: np.ndarray):
+    #     self.selected = selected
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] BinInfoDialog.update_selected()")
     #
-    #         if self.DEBUG:
-    #             print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
-    #                   f" Selected Contigs[0]:{contigs[0]}")
+    #     if self.isVisible():
+    #         self.update_gui()
     #
-    #         self.sel_contigs = contigs
+    # def set_contigs(self, contigs: Contig):
+    #     self.contigs = contigs
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] BinInfoDialog.set_contigs()\n"
+    #               f"\tContigs:{contigs}")
+    #
+    # def set_markergenes(self, mgs):
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] Len MGS:{len(mgs)}")
+    #     # form into dictionary
+    #     for i_idx in range(len(mgs)):
+    #         self.mg_dict[mgs[i_idx].MG_name] = i_idx
+    #
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] BinInfoDialog.set_markergenes()\n"
+    #               f"\tMG_Dictionary:{self.mg_dict}")
+    #     return mgs
+    #
+    # def set_contigs_and_markergenes(self, contigs, mgs):
+    #     self.contigs = contigs
+    #     return contigs, self.set_markergenes(mgs)
+    #
+    # # def find_selected_contigs(self):
+    # #     if self.selected is not None:
+    # #         contigs = self.contigs[self.selected]
+    # #
+    # #         if self.DEBUG:
+    # #             print(f"[DEBUG] BinInfoDialog.find_selected_contigs()\n"
+    # #                   f" Selected Contigs[0]:{contigs[0]}")
+    # #
+    # #         self.sel_contigs = contigs
+    #
+    # def calc_values(self):
+    #     sel_contigs = self.contigs[self.selected]
+    #     coverages = []
+    #     kmer_counts = []
+    #     self.count_arr = np.zeros(len(self.mgs), dtype=int)  # counting which markergenes exist
+    #     for c in sel_contigs:
+    #         c_mgs = c.mgs
+    #         for mg in c_mgs:
+    #             self.count_arr[self.mg_dict[mg]] += 1
+    #         coverages.append(c.coverage)
+    #         kmer_counts.append(c.kmere_counts)
+    #
+    #     val_greater_zero = [val > 0 for val in self.count_arr]
+    #     completeness = sum(val_greater_zero) / len(self.mgs)
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] BinInfoDialog.calc_values()\n"
+    #               f"\tCounted MG's:{self.count_arr}\n"
+    #               f"\tValues greater than 0:{val_greater_zero}\n"
+    #               f"\tCompleteness:{completeness}")
+    #     max_cnt = max(self.count_arr)
+    #     i_max = 2
+    #     contamination = 0
+    #     while i_max <= max_cnt:
+    #         existing = sum([val == i_max for val in self.count_arr])
+    #         contamination += existing * (i_max - 1)
+    #         i_max += 1
+    #     contamination = contamination / len(self.mgs)
+    #
+    #     if self.DEBUG:
+    #         print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
+    #
+    #     n_components = 1
+    #
+    #     kmer_counts = np.array(kmer_counts, dtype=int)
+    #     scaled_kmere_cnt = StandardScaler().fit_transform(kmer_counts)
+    #     kmer_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
+    #
+    #     coverages = np.array(coverages, dtype=float)
+    #     if len(coverages[0]) > 1:
+    #         n_components = 1
+    #         scaled_cov = StandardScaler().fit_transform(coverages)
+    #         coverages = PCA(n_components=n_components, random_state=5).fit_transform(coverages)
+    #     sorted_cov = np.sort(coverages)
+    #     if self.cut_quartiles:
+    #         q1_idx = int(np.round(len(sorted_cov) * 0.25))
+    #         q3_idx = int(np.round(len(sorted_cov) * 0.75))
+    #         return completeness, contamination, sorted_cov[q1_idx:q3_idx], kmer_counts[q1_idx:q3_idx]
+    #     else:
+    #         return completeness, contamination, sorted_cov, kmer_counts
 
-    def calc_values(self):
-        sel_contigs = self.contigs[self.selected]
-        coverages = []
-        kmere_counts = []
-        self.count_arr = np.zeros(len(self.mgs), dtype=int)
-        for c in sel_contigs:
-            c_mgs = c.mgs
-            for mg in c_mgs:
-                self.count_arr[self.mg_dict[mg]] += 1
-            coverages.append(c.coverage)
-            kmere_counts.append(c.kmere_counts)
-
-        val_greater_zero = [val > 0 for val in self.count_arr]
-        completeness = sum(val_greater_zero) / len(self.mgs)
-        if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.calc_values()\n"
-                  f"\tCounted MG's:{self.count_arr}\n"
-                  f"\tValues greater than 0:{val_greater_zero}\n"
-                  f"\tCompleteness:{completeness}")
-        max_cnt = max(self.count_arr)
-        i_max = 2
-        contamination = 0
-        while i_max <= max_cnt:
-            existing = sum([val == i_max for val in self.count_arr])
-            contamination += existing * (i_max - 1)
-            i_max += 1
-        contamination = contamination / len(self.mgs)
-
-        if self.DEBUG:
-            print(f"[DEBUG] BinInfoDialog.calc_values(): Contamination:{contamination}")
-
+    def update_data(self, sel_kmer_counts, sel_coverages):
         n_components = 1
+        n_selected = len(sel_coverages)
 
-        kmere_counts = np.array(kmere_counts, dtype=int)
-        scaled_kmere_cnt = StandardScaler().fit_transform(kmere_counts)
-        kmere_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
+        sel_kmer_counts = np.array(sel_kmer_counts, dtype=int)
+        scaled_kmere_cnt = StandardScaler().fit_transform(sel_kmer_counts)
+        sel_kmer_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
 
-        coverages = np.array(coverages, dtype=float)
-        if len(coverages[0]) > 1:
+        sel_coverages = np.array(sel_coverages, dtype=float)
+        if len(sel_coverages[0]) > 1:
             n_components = 1
-            scaled_cov = StandardScaler().fit_transform(coverages)
-            coverages = PCA(n_components=n_components, random_state=5).fit_transform(coverages)
-        sorted_cov = np.sort(coverages)
-        if self.cut_quartiles:
-            q1_idx = int(np.round(len(sorted_cov) * 0.25))
-            q3_idx = int(np.round(len(sorted_cov) * 0.75))
-            return completeness, contamination, sorted_cov[q1_idx:q3_idx], kmere_counts[q1_idx:q3_idx]
-        else:
-            return completeness, contamination, sorted_cov, kmere_counts
+            scaled_cov = StandardScaler().fit_transform(sel_coverages)
+            sel_coverages = PCA(n_components=n_components, random_state=5).fit_transform(sel_coverages)
 
-    def update_histo(self, cov, kmere, bin_rule=0):
+        self.selected_cov = np.sort(sel_coverages)
+        self.selected_kmer = np.sort(sel_kmer_counts)
+
+        self.update_gui()
+
+    def update_histo(self, cov=None, kmer=None, bin_rule=0):
+        if cov is None and kmer is None:
+            cov = self.selected_cov
+            kmer = self.selected_kmer
+
         n = len(cov)
         cov_sigma = np.std(cov)
         kmere_sigma = np.std(cov)
@@ -227,7 +233,7 @@ class BinInfoDialog(QDialog):
         self.k_ax.cla()
 
         self.c_ax.hist(cov, bins=c_bins_round)
-        self.k_ax.hist(kmere, bins=k_bins_round)
+        self.k_ax.hist(kmer, bins=k_bins_round)
 
         self.c_ax.set_title("Coverage of selected contigs")
         self.k_ax.set_title("K-mer distribution of selected contigs")
@@ -240,16 +246,18 @@ class BinInfoDialog(QDialog):
         self.figure.canvas.draw_idle()
 
     def show(self) -> None:
-        if self.contigs is not None and self.mgs is not None:
+        if self.selected_cov is not None and self.selected_kmer is not None:
             super().show()
             self.update_gui()
         elif self.DEBUG:
             print(f"[ERROR] Something is missing. You need to insert Contigs ans Markergenes first.")
 
     def update_gui(self):
-        if self.selected is not None and self.isVisible() and self.contigs is not None and self.mgs is not None:
-            completeness, contamination, coverages, kmere_counts = self.calc_values()
-
-            self.update_histo(coverages, kmere_counts, self.STURGES)
-            self.completeness_nbr_lbl.setText(str(completeness))
-            self.containment_nbr_lbl.setText(str(contamination))
+        if self.isVisible() and self.selected_cov is not None and self.selected_kmer is not None:
+            if self.cut_quartiles:
+                n_selected = len(self.selected_cov)
+                q1_idx = int(np.round(n_selected * 0.25))
+                q3_idx = int(np.round(n_selected * 0.75))
+                self.update_histo(cov=self.selected_cov[q1_idx:q3_idx], kmer=self.selected_kmer[q1_idx:q3_idx])
+            else:
+                self.update_histo()
