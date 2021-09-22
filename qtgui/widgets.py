@@ -340,7 +340,6 @@ class SelectGUI(QWidget):
         self.n_selected = 0
         self.completeness = None
         self.contamination = None
-        self.bw = 1
         self.contours = 25
         self.selected_vec = None
         self.grid_points = 100
@@ -349,6 +348,24 @@ class SelectGUI(QWidget):
         self.y_lim = None
 
         self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
+
+        # Bandwith calculation
+        x, y = FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 0]).evaluate(self.grid_points)
+        a = min(min(x), min(y))
+        x, y = FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 1]).evaluate(self.grid_points)
+        self.bw_lower_bound = min(min(x), min(y), a)
+        x, y = FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 0]).evaluate(self.grid_points)
+        a = min(min(x), min(y))
+        x, y = FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 1]).evaluate(self.grid_points)
+        self.bw_upper_bound = min(min(x), min(y), a)
+
+        # self.bw_lower_bound = min(FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 0]),
+        #                           FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 1]))
+        # self.bw_upper_bound = max(FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 0]),
+        #                           FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 1]))
+        bw_diff = self.bw_upper_bound - self.bw_lower_bound
+        print(f"[DEBUG] SelectGUI.__init__(): bw_lower_bound:{self.bw_lower_bound} | bw_upper_bound:{self.bw_upper_bound} | Diff:{bw_diff}")
+        self.bw = self.bw_lower_bound
 
         # BACK BUTTON
         back_btn = QPushButton("<- Back")
@@ -395,13 +412,15 @@ class SelectGUI(QWidget):
         self.bw_slider = QSlider(Qt.Vertical)
         self.cont_slider = QSlider(Qt.Vertical)
 
-        self.bw_slider.setRange(1, 20)
+        self.bw_slider.setRange(self.bw_lower_bound, self.bw_upper_bound)
         self.bw_slider.setValue(self.bw)
         self.cont_slider.setRange(1, 50)
         self.cont_slider.setValue(25)
 
-        self.bw_slider.sliderReleased.connect(self.on_bw_slider_change)
-        self.cont_slider.sliderReleased.connect(self.on_cont_slider_change)
+        # self.bw_slider.sliderReleased.connect(self.on_bw_slider_change)
+        self.bw_slider.sliderMoved.connect(self.on_bw_slider_change)
+        # self.cont_slider.sliderReleased.connect(self.on_cont_slider_change)
+        self.cont_slider.sliderMoved.connect(self.on_cont_slider_change)
 
         slider_layout = QGridLayout()
         slider_layout.addWidget(self.bw_nbr_lbl, 0, 0, alignment=Qt.AlignHCenter)
