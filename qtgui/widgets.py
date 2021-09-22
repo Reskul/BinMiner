@@ -13,6 +13,8 @@ from matplotlib.figure import Figure
 import numpy as np
 
 from KDEpy import FFTKDE
+from KDEpy.BaseKDE import BaseKDE
+from KDEpy.bw_selection import improved_sheather_jones, silvermans_rule
 from skimage.feature import peak_local_max
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -349,23 +351,19 @@ class SelectGUI(QWidget):
 
         self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
-        # Bandwith calculation
-        x, y = FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 0]).evaluate(self.grid_points)
-        a = min(min(x), min(y))
-        x, y = FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 1]).evaluate(self.grid_points)
-        self.bw_lower_bound = min(min(x), min(y), a)
-        x, y = FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 0]).evaluate(self.grid_points)
-        a = min(min(x), min(y))
-        x, y = FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 1]).evaluate(self.grid_points)
-        self.bw_upper_bound = min(min(x), min(y), a)
+        # Bandwith calculation TODO: get this right
+        prep_data_a =BaseKDE._process_sequence(self.data[:, 0])
+        prep_data_b = BaseKDE._process_sequence(self.data[:, 1])
 
-        # self.bw_lower_bound = min(FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 0]),
-        #                           FFTKDE(kernel='gaussian', bw='ISJ').fit(self.data[:, 1]))
-        # self.bw_upper_bound = max(FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 0]),
-        #                           FFTKDE(kernel='gaussian', bw='silverman').fit(self.data[:, 1]))
+        self.bw_lower_bound = min(improved_sheather_jones(prep_data_a), improved_sheather_jones(prep_data_b))
+        self.bw_upper_bound = max(silvermans_rule(prep_data_a), silvermans_rule(prep_data_b))
         bw_diff = self.bw_upper_bound - self.bw_lower_bound
-        print(f"[DEBUG] SelectGUI.__init__(): bw_lower_bound:{self.bw_lower_bound} | bw_upper_bound:{self.bw_upper_bound} | Diff:{bw_diff}")
-        self.bw = self.bw_lower_bound
+
+        if self.DEBUG:
+            print(f"[DEBUG] SelectGUI.__init__(): LowerBW:{self.bw_lower_bound} | UpperBW:{self.bw_upper_bound} | Diff:{bw_diff}")
+
+        self.bw = self.bw_lower_bound + bw_diff / 2
+        n_bw_slider_steps = int(np.round(bw_diff / 0.1))
 
         # BACK BUTTON
         back_btn = QPushButton("<- Back")
@@ -412,7 +410,7 @@ class SelectGUI(QWidget):
         self.bw_slider = QSlider(Qt.Vertical)
         self.cont_slider = QSlider(Qt.Vertical)
 
-        self.bw_slider.setRange(self.bw_lower_bound, self.bw_upper_bound)
+        self.bw_slider.setRange(1, n_bw_slider_steps)
         self.bw_slider.setValue(self.bw)
         self.cont_slider.setRange(1, 50)
         self.cont_slider.setValue(25)
@@ -492,7 +490,8 @@ class SelectGUI(QWidget):
         self.ax.scatter(x[peakdata[:, 1]], y[peakdata[:, 0]], marker=10, c="orange")
 
     def on_bw_slider_change(self):
-        self.bw = self.bw_slider.value()
+        step = self.bw_slider.value()
+        self.bw = self.bw_lower_bound + step * 0.1
         self.bw_nbr_lbl.setText(str(self.bw))
         self.update_plot()
 
@@ -554,7 +553,7 @@ class SelectGUI(QWidget):
         self.completeness = sum(val_greater_zero) / n_mgs
         if self.DEBUG:
             print(f"[DEBUG] SelectGUI.calc_values()\n"
-                  f"\tCounted MG's:{self.count_arr}\n"
+                  f"\tCounted MG's:{contained_mgs}\n"
                   f"\tValues greater than 0:{val_greater_zero}\n"
                   f"\tCompleteness:{self.completeness}")
         max_cnt = max(contained_mgs)
@@ -567,7 +566,7 @@ class SelectGUI(QWidget):
         self.contamination = contam / n_mgs
 
         if self.DEBUG:
-            print(f"[DEBUG] SelectGUI.calc_values(): Contamination:{contam}")
+            print(f"[DEBUG] SelectGUI.calc_values(): Contamination:{self.contamination}")
 
         return sel_coverages, sel_kmer_counts
 
