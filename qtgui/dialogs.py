@@ -73,10 +73,10 @@ class BinInfoDialog(QDialog):
     def save_clicked(self):
         now = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
         file_name = f"cov_histo{now}"
-        d_path = os.path.join(self.parent.cfg.homepath, 'coverage_histograms')
+        d_path = os.path.join(self.parent.cfg.homepath, 'diagrams')
         if not os.path.exists(d_path):
             os.makedirs(d_path)
-        f_path = os.path.join(self.parent.cfg.homepath, 'coverage_histograms', file_name)
+        f_path = os.path.join(self.parent.cfg.homepath, 'diagrams', file_name)
         self.figure.savefig(fname=f_path, dpi=100)
 
     def cut_clicked(self):
@@ -85,6 +85,7 @@ class BinInfoDialog(QDialog):
         else:
             self.cut_quartiles = False
         self.update_gui()
+
     # def update_selected(self, selected: np.ndarray):
     #     self.selected = selected
     #     if self.DEBUG:
@@ -180,10 +181,15 @@ class BinInfoDialog(QDialog):
         n_selected = len(sel_coverages)
 
         sel_kmer_counts = np.array(sel_kmer_counts, dtype=int)
+        sel_coverages = np.array(sel_coverages, dtype=float)
+
+        if n_selected == 1:
+            sel_kmer_counts.reshape(1, -1)
+            sel_coverages.reshape(1, -1)
+
         scaled_kmere_cnt = StandardScaler().fit_transform(sel_kmer_counts)
         sel_kmer_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
 
-        sel_coverages = np.array(sel_coverages, dtype=float)
         if len(sel_coverages[0]) > 1:
             n_components = 1
             scaled_cov = StandardScaler().fit_transform(sel_coverages)
