@@ -405,13 +405,13 @@ class SelectGUI(QWidget):
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
         cont_slider_lbl = QLabel("Contours")
-        self.bw_nbr_lbl = QLabel(str(self.bw))
+        self.bw_nbr_lbl = QLabel("{:10.2f}".format(self.bw))
         self.cont_nbr_lbl = QLabel(str(self.contours))
         self.bw_slider = QSlider(Qt.Vertical)
         self.cont_slider = QSlider(Qt.Vertical)
 
         self.bw_slider.setRange(1, n_bw_slider_steps)
-        self.bw_slider.setValue(self.bw)
+        self.bw_slider.setValue(n_bw_slider_steps/2)
         self.cont_slider.setRange(1, 50)
         self.cont_slider.setValue(25)
 
@@ -492,7 +492,7 @@ class SelectGUI(QWidget):
     def on_bw_slider_change(self):
         step = self.bw_slider.value()
         self.bw = self.bw_lower_bound + step * 0.1
-        self.bw_nbr_lbl.setText(str(self.bw))
+        self.bw_nbr_lbl.setText("{:10.2f}".format(self.bw))
         self.update_plot()
 
     def on_cont_slider_change(self):
