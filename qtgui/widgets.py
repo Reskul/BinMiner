@@ -55,15 +55,18 @@ class InputGUI(QWidget):
     PLOTSTATE_COV = 1
     PLOTSTATE_COMB = 2
 
-    def __init__(self, parent=None, cfg: Configurator = None, debug=False):
+    def __init__(self, parent, cfg: Configurator = None, debug=False):
         super().__init__(parent)
         # INSTANCE VARIABLES
         self.DEBUG = debug
+        self.TEST = parent.TEST
         self.PLOTSTATE = 0
         self.config = cfg
+        self.last_path = self.config.homepath
         self.contig_sequences_path = None
         self.contig_coverage_path = None
         self.kmere_dataset_path = None
+        self.test_path = None
         self.fetchmg_result_path = None
         self.prodigal_binpath = None
         self.fetchmg_binpath = None
@@ -83,17 +86,23 @@ class InputGUI(QWidget):
         # Contig DNA Sequence ----------
         self.contig_dataset_le = QFileInputLine()
         self.contig_dataset_le.clicked.connect(self.cd_clicked)
-        f_layout.addRow(QLabel("Contig sequence File (fasta)"), self.contig_dataset_le)
+        f_layout.addRow(QLabel("Contig sequence File (.fasta)"), self.contig_dataset_le)
 
         # Contig Coverage File
         self.contig_coverage_le = QFileInputLine()
         self.contig_coverage_le.clicked.connect(self.cc_clicked)
-        f_layout.addRow((QLabel("Contig coverage file")), self.contig_coverage_le)
+        f_layout.addRow((QLabel("Contig coverage file (.txt)")), self.contig_coverage_le)
 
         # K-Mere Data ----------
         self.kmere_dataset_le = QFileInputLine()
         self.kmere_dataset_le.clicked.connect(self.km_clicked)
         f_layout.addRow(QLabel("K-mer data file (.npy)"), self.kmere_dataset_le)
+
+        # Contig Test Data
+        if self.TEST:
+            self.test_le = QFileInputLine()
+            self.test_le.clicked.connect(self.test_clicked)
+            f_layout.addRow(QLabel("Contig heritage file (.txt)"), self.test_le)
 
         # TSNE Perplexity Parameter
         perplex_lbl = QLabel("T-SNE perplexity")
@@ -186,32 +195,38 @@ class InputGUI(QWidget):
     def cd_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select Contig Fasta-Data File', self.config.homepath,
         #                                        QFileDialog.ShowDirsOnly)
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig fasta-data file', self.config.homepath,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig fasta-data file', self.last_path,
                                               'Fasta Files (*.fasta *.faa *.fa *.fna)')
         if path:
             self.contig_dataset_le.setText(path)
             self.contig_sequences_path = path
+            self.last_path = path
 
     def cc_clicked(self):
-        if not self.contig_dataset_le.is_empty():
-            dirname = ntpath.dirname(self.contig_dataset_le.text())
-        else:
-            dirname = self.cfg.homepath
-
-        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig coverage file', dirname,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig coverage file', self.last_path,
                                               'Depth/Text Files (*.depth *.depth.txt)')
         if path:
             self.contig_coverage_le.setText(path)
             self.contig_coverage_path = path
+            self.last_path = path
 
     def km_clicked(self):
         # path = QFileDialog.getExistingDirectory(self, 'Select K-mere Data Directory', self.config.homepath,
         #                                         QFileDialog.ShowDirsOnly)
-        path, _ = QFileDialog.getOpenFileName(self, 'Select precomputed K-mer data', self.config.homepath,
+        path, _ = QFileDialog.getOpenFileName(self, 'Select precomputed K-mer data', self.last_path,
                                               'Numpy Files (*.npy)')
         if path:
             self.kmere_dataset_le.setText(path)
             self.kmere_dataset_path = path
+            self.last_path = path
+
+    def test_clicked(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Select Contig Test Data', self.last_path,
+                                              'Text Files (*.txt)')
+        if path:
+            self.test_le.setText(path)
+            self.test_path = path
+            self.last_path = path
 
     def radio_result_clicked(self):
         self.radio_changed(True)
@@ -269,7 +284,7 @@ class InputGUI(QWidget):
                     self.config.write(self.config.FETCHMGRES_KEY, self.fetchmg_result_path)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
                                             self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
-                                            fetchmg_respath=self.fetchmg_result_path)
+                                            fetchmg_respath=self.fetchmg_result_path, testdata_path=self.test_path)
 
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
                 if self.cfg:
@@ -280,7 +295,7 @@ class InputGUI(QWidget):
                     self.config.write(self.config.PRODIGAL_KEY, self.prodigal_binpath)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
                                             self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
-                                            prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath)
+                                            prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath, testdata_path=self.test_path)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
 
