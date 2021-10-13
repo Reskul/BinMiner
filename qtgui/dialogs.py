@@ -50,7 +50,7 @@ class BinInfoDialog(QDialog):
         self.c_ax = self.figure.add_subplot(121)
         self.k_ax = self.figure.add_subplot(122)
         canvas = FigureCanvas(self.figure)
-        save_btn = QPushButton("Save As")
+        save_btn = QPushButton("save figure as")
         cut_btn = QPushButton("Cut Quartiles")
         self.cut_ckbox = QCheckBox("Cut Quartiles")
 
@@ -71,13 +71,11 @@ class BinInfoDialog(QDialog):
         self.update_gui()
 
     def save_clicked(self):
+        # TODO open file selector
         now = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
-        file_name = f"cov_histo{now}"
-        d_path = os.path.join(self.parent.cfg.homepath, 'diagrams')
-        if not os.path.exists(d_path):
-            os.makedirs(d_path)
-        f_path = os.path.join(self.parent.cfg.homepath, 'diagrams', file_name)
-        self.figure.savefig(fname=f_path, dpi=100)
+        file_name = f"cov_histo{now}.png"
+        filepath = QFileDialog.getSaveFileName(self, "Save File", file_name)
+        self.figure.savefig(fname=filepath, dpi=100)
 
     def cut_clicked(self):
         if self.cut_ckbox.isChecked():
@@ -85,7 +83,6 @@ class BinInfoDialog(QDialog):
         else:
             self.cut_quartiles = False
         self.update_gui()
-
     # def update_selected(self, selected: np.ndarray):
     #     self.selected = selected
     #     if self.DEBUG:
