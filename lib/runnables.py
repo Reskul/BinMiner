@@ -22,8 +22,13 @@ class DataLoadingRunnable(QRunnable):
         self.perplexity = args[5]
         self.plotstate = args[6]
         self.DEBUG = kwargs.get('debug', False)
+        self.testdata_path = kwargs.get('testdata_path', None)
         self.create = kwargs.get('create', False)
         self.corr = 0
+        if self.testdata_path is None:
+            self.TEST_MODE = False
+        else:
+            self.TEST_MODE = True
 
         dataset_name = ntpath.basename(self.contig_path)
 
@@ -53,8 +58,9 @@ class DataLoadingRunnable(QRunnable):
                 stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
 
-        kmere_counts = self.read_data()
+        kmere_counts = self.read_kmer_data()
         contigs, mgs = self.read_dna_data()
+
         if self.check_correlation(kmere_counts, contigs):
             # zip Kmere_counts into Contig
             i = 0
@@ -102,6 +108,12 @@ class DataLoadingRunnable(QRunnable):
                                      Q_ARG(str, f"Correlation failed ({self.corr})"))
 
     def read_dna_data(self):
+        test_data = None
+        if self.TEST_MODE:
+            # read Test Data [contig_name,heritage]
+            test_file = open(self.testdata_path, 'r')
+            test_data = self.read_test_data(test_file)
+
         if self.create:
             mg_path = os.path.join(self.DATADIR, self.mg_output_dir)
         else:
@@ -112,6 +124,7 @@ class DataLoadingRunnable(QRunnable):
             print(f"Anzahl: {len(cog_files)}\n{cog_files}")
 
         # READ-IN Marker Genes from fetchMG results ----------
+        # TODO: re-think markergene reading, there is a table file which maybe makes everything easier
         reader = FastaReader(FastaReader.PRODIGAL)
         mgs = []
         for f in cog_files:
@@ -131,27 +144,40 @@ class DataLoadingRunnable(QRunnable):
 
         contigs = np.empty(len(sequences), dtype=Contig)
         i_idx = 0
-        # TODO is there a better method? faster?
+        # TODO is there a better method? faster? --> maybe with the table of markergenes but only maybe
         for s in sequences:
-            c = Contig(s)
+            if self.TEST_MODE:
+                organism = 'ERROR'
+                for i in range(len(test_data)):
+                    if s.header.contig == test_data[i][0]:
+                        organism = test_data[i][1]
+                        break
+                c = Contig(s, organism)  # May break sometimes? well.. if files are wrong
+            else:
+                c = Contig(s)
             for mg in mgs:
                 if mg.__contains__(c.CONTIG_name):
                     c.add_mg(mg.MG_name)
             for entry in coverage_tup:
                 if c.CONTIG_name == entry[0]:
                     c.coverage = np.array([float(val) for val in entry[1:]], dtype=float)
+            if self.TEST_MODE:
+                for i in range(len(test_data)):
+                    if c.CONTIG_name == test_data[i][0]:
+                        c.organism = test_data[i][1]
             contigs[i_idx] = c
             i_idx += 1
 
         if self.DEBUG:
-            print(f"[DEBUG] Contig Example: {contigs[0]}\t{type(contigs[0])}")
-            print(f"[DEBUG] Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
+            print(f"[DEBUG] DataLoadingRunnable.read_dna_data(): Contig Example: {contigs[0]}\t{type(contigs[0])}")
+            print(f"[DEBUG] DataLoadingRunnable.read_dna_data(): Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
+            # print(f"[DEBUG] DataLoadingRunnable.read_dna_data(): Fasta Representation:\n{contigs[0].to_fasta()}")
 
         mgs = np.array(mgs)
 
         return contigs, mgs
 
-    def read_data(self):
+    def read_kmer_data(self):
         if self.DEBUG:
             print("[DEBUG] DataLoadingRunnable.run()", self.kmere_path)
         data_raw = np.load(self.kmere_path)
@@ -186,6 +212,26 @@ class DataLoadingRunnable(QRunnable):
             print(f"[DEBUG] DataLoadingRunnable.read_coverage(): Cov's:{covs[0]} Type:{type(covs)}")
 
         return covs
+
+    def read_test_data(self, test_file):
+        entries = test_file.read().split('\n')
+        if self.DEBUG:
+            tmp = entries[0].split('\t')
+            print(f"[DEBUG]DataLoadingRunnable.read_test_data(): {entries[0]}|{tmp}|{len(entries)}")
+        arr = np.empty((len(entries), 2), dtype=object)
+        contig_name = []
+        org_name = []
+        for i in range(len(entries)):
+            e = entries[i].split('\t')
+            # contig_name.append(e[0].strip())
+            # org_name.append(e[1].strip())
+            arr[i, 0] = e[0]
+            arr[i, 1] = e[1]
+        if self.DEBUG:
+            print(f"[DEBUG]DataLoadingRunnable.read_test_data(): {arr.shape}|{arr[0][0]},{arr[0][1]}")
+            # print(f"[DEBUG]DataLoadingRunnable.read_test_data(): {len(contig_name)},{len(org_name)}|{contig_name[0]},{org_name[0]}")
+
+        return arr
 
     def check_correlation(self, kmeres, contigs) -> bool:
         if len(kmeres) == len(contigs):
