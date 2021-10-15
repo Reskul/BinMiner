@@ -417,6 +417,9 @@ class SelectGUI(QWidget):
         diagram_layout.addLayout(info_bar_layout, 2, 2, 1, 1)
         self.update_info_bar()
 
+        # Save Selection to fasta btn (in Slider Box) ---------
+        save_selected_btn = QPushButton("save selected")
+        save_selected_btn.clicked.connect()
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
         cont_slider_lbl = QLabel("Contours")
@@ -435,7 +438,7 @@ class SelectGUI(QWidget):
         # self.cont_slider.sliderReleased.connect(self.on_cont_slider_change)
         self.cont_slider.sliderMoved.connect(self.on_cont_slider_change)
 
-        slider_layout = QGridLayout()
+        slider_layout = QGridLayout()  # TODO Add Button underneath to print selected to fasta file, maybe also somehow allow naming the "found" organism
         slider_layout.addWidget(self.bw_nbr_lbl, 0, 0, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(self.bw_slider, 1, 0, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(bw_slider_lbl, 2, 0)
@@ -584,6 +587,12 @@ class SelectGUI(QWidget):
             print(f"[DEBUG] SelectGUI.calc_values(): Contamination:{self.contamination}")
 
         return sel_coverages, sel_kmer_counts
+
+    def save_selected_to_file(self):
+        filepath = QFileDialog.getSaveFileName(self, "Save selection to fasta file", 'genom.fasta')
+        if filepath:
+            sel_contigs = self.contigs[self.selected_vec]
+            # TODO Start assembling all selected contigs to a fasta file
 
     def show_diagram_dialog(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
