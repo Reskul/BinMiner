@@ -62,6 +62,6 @@ class Contig:
             seq_lines.append(seq[(i-1)*80:i*80])
         seq_lines.append(seq[length - overhang:])
         seq = '\n'.join(seq_lines)
-        print(n_lines, overhang)
-        print(length, len(seq))
+        # print(n_lines, overhang)
+        # print(length, len(seq))
         return f">{self.CONTIG_name};organism={self.organism};cov={self.coverage};mg={self.mgs}{seq}"
