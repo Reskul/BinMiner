@@ -74,7 +74,7 @@ class BinInfoDialog(QDialog):
         # TODO open file selector
         now = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
         file_name = f"cov_histo{now}.png"
-        filepath = QFileDialog.getSaveFileName(self, "Save File", file_name)
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save File", file_name)
         if filepath:
             self.figure.savefig(fname=filepath, dpi=100)
 
@@ -84,6 +84,7 @@ class BinInfoDialog(QDialog):
         else:
             self.cut_quartiles = False
         self.update_gui()
+
     # def update_selected(self, selected: np.ndarray):
     #     self.selected = selected
     #     if self.DEBUG:
