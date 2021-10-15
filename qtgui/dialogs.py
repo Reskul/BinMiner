@@ -75,7 +75,8 @@ class BinInfoDialog(QDialog):
         now = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
         file_name = f"cov_histo{now}.png"
         filepath = QFileDialog.getSaveFileName(self, "Save File", file_name)
-        self.figure.savefig(fname=filepath, dpi=100)
+        if filepath:
+            self.figure.savefig(fname=filepath, dpi=100)
 
     def cut_clicked(self):
         if self.cut_ckbox.isChecked():
