@@ -367,7 +367,7 @@ class SelectGUI(QWidget):
         self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
         # Bandwith calculation TODO: get this right
-        prep_data_a =BaseKDE._process_sequence(self.data[:, 0])
+        prep_data_a = BaseKDE._process_sequence(self.data[:, 0])
         prep_data_b = BaseKDE._process_sequence(self.data[:, 1])
 
         self.bw_lower_bound = min(improved_sheather_jones(prep_data_a), improved_sheather_jones(prep_data_b))
@@ -419,7 +419,7 @@ class SelectGUI(QWidget):
 
         # Save Selection to fasta btn (in Slider Box) ---------
         save_selected_btn = QPushButton("save selected")
-        save_selected_btn.clicked.connect()
+        save_selected_btn.clicked.connect(self.save_selected_to_file)
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
         cont_slider_lbl = QLabel("Contours")
@@ -429,7 +429,7 @@ class SelectGUI(QWidget):
         self.cont_slider = QSlider(Qt.Vertical)
 
         self.bw_slider.setRange(1, n_bw_slider_steps)
-        self.bw_slider.setValue(n_bw_slider_steps/2)
+        self.bw_slider.setValue(int(n_bw_slider_steps / 2))
         self.cont_slider.setRange(1, 50)
         self.cont_slider.setValue(25)
 
@@ -445,6 +445,7 @@ class SelectGUI(QWidget):
         slider_layout.addWidget(self.cont_nbr_lbl, 0, 1, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(self.cont_slider, 1, 1, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(cont_slider_lbl, 2, 1)
+        slider_layout.addWidget(save_selected_btn, 3, 0, 1, 2)
 
         # GENERAL LAYOUT
         layout = QHBoxLayout()
@@ -589,10 +590,19 @@ class SelectGUI(QWidget):
         return sel_coverages, sel_kmer_counts
 
     def save_selected_to_file(self):
-        filepath = QFileDialog.getSaveFileName(self, "Save selection to fasta file", 'genom.fasta')
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save selection to fasta file", 'genom.fasta')
         if filepath:
+            if self.DEBUG:
+                print(f"[VERBOSE] SelectGUI.save_selected_to_file(): Assembling & creating fasta file of selected contigs.")
             sel_contigs = self.contigs[self.selected_vec]
-            # TODO Start assembling all selected contigs to a fasta file
+            collection = []
+            for contig in sel_contigs:
+                collection.append(contig.to_fasta())
+            content = "\n".join(collection).strip()
+            file = open(filepath, 'w+')
+            file.write(content)
+            file.flush()
+            file.close()
 
     def show_diagram_dialog(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
