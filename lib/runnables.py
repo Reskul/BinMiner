@@ -222,11 +222,12 @@ class DataLoadingRunnable(QRunnable):
         contig_name = []
         org_name = []
         for i in range(len(entries)):
-            e = entries[i].split('\t')
-            # contig_name.append(e[0].strip())
-            # org_name.append(e[1].strip())
-            arr[i, 0] = e[0]
-            arr[i, 1] = e[1]
+            if entries[i].__contains__('\t'):
+                e = entries[i].split('\t')
+                # contig_name.append(e[0].strip())
+                # org_name.append(e[1].strip())
+                arr[i, 0] = e[0]
+                arr[i, 1] = e[1]
         if self.DEBUG:
             print(f"[DEBUG]DataLoadingRunnable.read_test_data(): {arr.shape}|{arr[0][0]},{arr[0][1]}")
             # print(f"[DEBUG]DataLoadingRunnable.read_test_data(): {len(contig_name)},{len(org_name)}|{contig_name[0]},{org_name[0]}")
