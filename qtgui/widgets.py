@@ -46,8 +46,8 @@ class MyNavigationToolbar(NavigationToolbar2QT):
 
     def home(self, *args):
         super().home(args)
-        self.parent.x_lim = None
-        self.parent.y_lim = None
+        self.canvas.parent().x_lim = self.canvas.parent().home_x_lim
+        self.canvas.parent().y_lim = self.canvas.parent().home_y_lim
 
 
 class InputGUI(QWidget):
@@ -118,7 +118,7 @@ class InputGUI(QWidget):
         # >< Ergebnisse Path   | >< Prodigal Path
         #                      | >< FetchMG path
         self.results_radbtn = QRadioButton("FetchMG Results")
-        self.source_radbtn = QRadioButton("Calculate MarkerGenes")
+        self.source_radbtn = QRadioButton("Calculate MarkerGenes(linux only)")
         self.results_radbtn.setChecked(True)
 
         self.results_radbtn.clicked.connect(self.radio_result_clicked)
@@ -453,6 +453,8 @@ class SelectGUI(QWidget):
         layout.addLayout(slider_layout)
 
         self.update_plot()
+        self.home_x_lim = self.ax.get_xlim()
+        self.home_y_lim = self.ax.get_ylim()
         self.setLayout(layout)
 
     def update_info_bar(self):
@@ -472,10 +474,10 @@ class SelectGUI(QWidget):
         if self.data is not None:
             self.ax.clear()
             if self.x_lim is not None and self.y_lim is not None:
-                if self.DEBUG:
-                    print(f"[DEBUG] SelectGUI.update_plot(): Setting Axes View Limits")
                 self.ax.set_xlim(left=self.x_lim[0], right=self.x_lim[1])
                 self.ax.set_ylim(bottom=self.y_lim[0], top=self.y_lim[1])
+                if self.DEBUG:
+                    print(f"[DEBUG] SelectGUI.update_plot(): Setting Axes View Limits")
             self.ax.tick_params(axis='x', labelsize='14')
             self.ax.tick_params(axis='y', labelsize='14')
             self.ax.patches = []
