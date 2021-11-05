@@ -266,3 +266,48 @@ class BinInfoDialog(QDialog):
                 self.update_histo(cov=self.selected_cov[q1_idx:q3_idx], kmer=self.selected_kmer[q1_idx:q3_idx])
             else:
                 self.update_histo()
+
+
+class NameSelectedDialog(QDialog):
+
+    def __init__(self, parent, debug=False):
+        super().__init__(parent)
+        self.setWindowTitle("Name Organism")
+        self.setModal(True)
+        self.DEBUG = debug
+        self.parent = parent
+
+        self.name_input: QLineEdit = None
+        self.ok_btn = None
+        self.cancel_btn = None
+
+        self.init_gui()
+
+    def init_gui(self):
+        title_text = QLabel("Name the prototype genome")
+        self.name_input = QLineEdit()
+        self.ok_btn = QPushButton("OK")
+        self.ok_btn.clicked.connect(self.ok_clicked)
+        self.cancel_btn = QPushButton("CANCEL")
+        self.cancel_btn.clicked.connect(self.cancel_clicked)
+
+        layout = QGridLayout()
+        layout.addWidget(title_text, 0, 1)
+        layout.addWidget(self.name_input, 1, 1)
+        layout.addWidget(self.cancel_btn, 2, 0, 1, 1)
+        layout.addWidget(self.ok_btn, 2, 2, 1, 1)
+
+        self.setLayout(layout)
+
+    def ok_clicked(self):
+        name = self.name_input.text()
+        name.strip()
+        if name != '':
+            self.parent.save_to_file(name)
+        else:
+            self.parent.save_to_file()
+
+        self.close()
+
+    def cancel_clicked(self):
+        self.close()

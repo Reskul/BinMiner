@@ -20,7 +20,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from lib import *
-from .dialogs import BinInfoDialog
+from .dialogs import BinInfoDialog,NameSelectedDialog
 
 
 class QFileInputLine(QLineEdit):
@@ -347,6 +347,7 @@ class SelectGUI(QWidget):
         super().__init__(parent)
         # VARIABLE Initialization
         self.DEBUG = debug
+        self.TEST = test
         self.data = kmere_data
         self.contigs = contigs
         self.mgs = mgs
@@ -361,12 +362,14 @@ class SelectGUI(QWidget):
         self.selected_vec = None
         self.grid_points = 100
 
+        self.prototype_name = None
+
         self.x_lim = None
         self.y_lim = None
 
         self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
-        # Bandwith calculation TODO: get this right
+        # Bandwith calculation TODO: get this right... i guess is now?
         prep_data_a = BaseKDE._process_sequence(self.data[:, 0])
         prep_data_b = BaseKDE._process_sequence(self.data[:, 1])
 
@@ -419,7 +422,7 @@ class SelectGUI(QWidget):
 
         # Save Selection to fasta btn (in Slider Box) ---------
         save_selected_btn = QPushButton("save selected")
-        save_selected_btn.clicked.connect(self.save_selected_to_file)
+        save_selected_btn.clicked.connect(self.save_pressed)
         # Slider Section ----------
         bw_slider_lbl = QLabel("Bandwidth")
         cont_slider_lbl = QLabel("Contours")
@@ -591,14 +594,22 @@ class SelectGUI(QWidget):
 
         return sel_coverages, sel_kmer_counts
 
-    def save_selected_to_file(self):
-        filepath, _ = QFileDialog.getSaveFileName(self, "Save selection to fasta file", 'genom.fasta')
+    def save_pressed(self):
+        dialog = NameSelectedDialog(self,self.DEBUG)
+        dialog.show()
+
+    def save_to_file(self, name='prototype'):
+        sel_contigs = self.contigs[self.selected_vec]
+        n = len(sel_contigs)
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save selection to fasta file", f'{name}_n{n}.fasta')
         if filepath:
             if self.DEBUG:
                 print(f"[VERBOSE] SelectGUI.save_selected_to_file(): Assembling & creating fasta file of selected contigs.")
-            sel_contigs = self.contigs[self.selected_vec]
+
             collection = []
             for contig in sel_contigs:
+                if not self.TEST:
+                    contig.organism = name
                 collection.append(contig.to_fasta())
             content = "\n".join(collection).strip()
             file = open(filepath, 'w+')
