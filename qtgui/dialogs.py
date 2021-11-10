@@ -286,10 +286,11 @@ class NameSelectedDialog(QDialog):
     def init_gui(self):
         title_text = QLabel("Name the prototype genome")
         self.name_input = QLineEdit()
-        self.ok_btn = QPushButton("OK")
-        self.ok_btn.clicked.connect(self.ok_clicked)
         self.cancel_btn = QPushButton("CANCEL")
         self.cancel_btn.clicked.connect(self.cancel_clicked)
+        self.ok_btn = QPushButton("OK")
+        self.ok_btn.clicked.connect(self.ok_clicked)
+        self.ok_btn.setDefault(True)
 
         layout = QGridLayout()
         layout.addWidget(title_text, 0, 1)
