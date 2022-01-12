@@ -69,3 +69,4 @@ class ControllingWindow(QMainWindow):
     @pyqtSlot(str)
     def data_failed(self, message):
         print("Loading Data Failed:", message)
+        self.loading_spinner.stop()
