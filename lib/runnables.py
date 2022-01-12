@@ -61,16 +61,18 @@ class DataLoadingRunnable(QRunnable):
         kmere_counts = self.read_kmer_data()
         contigs, mgs = self.read_dna_data()
 
+        failed = False
+        plotdata = None
+
         if self.check_correlation(kmere_counts, contigs):
             # zip Kmere_counts into Contig
             i = 0
             while i < len(contigs):
                 contigs[i].kmere_counts = kmere_counts[i]
                 i += 1
-            plotdata = None
             if self.plotstate == 0:  # Plot Kmere Data
                 kmere_sums = np.sum(kmere_counts, 1)
-                x_mat = (kmere_counts.T / kmere_sums).T  # Norm data
+                x_mat = (kmere_counts.T / kmere_sums).T  # Norm data (relative frequencies)
                 # T-SNE Data Dim reduction
                 plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)
             elif self.plotstate == 1:  # Plot Coverage Data
@@ -82,8 +84,10 @@ class DataLoadingRunnable(QRunnable):
                     covs = np.array(covs, dtype=float)
                     plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(covs)
                 else:
+                    failed = True
                     QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection,
                                              Q_ARG(str, "Coverage is 1-Dimensional. Use different Method"))
+
 
             elif self.plotstate == 2:  # Plot Combined Data
                 n = len(contigs)
@@ -97,15 +101,21 @@ class DataLoadingRunnable(QRunnable):
                     row = np.hstack((kmere, cov))
                     x_mat[i] = row
                 # TODO normalize x_mat here to not over- or underweight coverage
+                x_mat_sums = np.sum(x_mat, 1)
+                x_mat = (x_mat.T / x_mat_sums).T
                 plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)
             else:
+                failed = True
                 QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection, Q_ARG(str, "Unknown Plotstate"))
 
-            QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
-                                     Q_ARG(type(mgs), mgs), Q_ARG(type(plotdata), plotdata))
         else:
+            failed = True
             QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection,
                                      Q_ARG(str, f"Correlation failed ({self.corr})"))
+
+        if not failed:
+            QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
+                                     Q_ARG(type(mgs), mgs), Q_ARG(type(plotdata), plotdata))
 
     def read_dna_data(self):
         test_data = None
