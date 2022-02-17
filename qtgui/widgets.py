@@ -10,6 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.backend_bases import _Mode
 from matplotlib.figure import Figure
+import matplotlib.colors as colors
 import numpy as np
 
 from KDEpy import FFTKDE
@@ -20,7 +21,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from lib import *
-from .dialogs import BinInfoDialog,NameSelectedDialog
+from .dialogs import BinInfoDialog, NameSelectedDialog
 
 
 class QFileInputLine(QLineEdit):
@@ -369,7 +370,23 @@ class SelectGUI(QWidget):
 
         self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
-        # Bandwith calculation TODO: get this right... i guess is now?
+        # Calculating Color and size values for depiction, Color-> Coverage & Size-> Contig length
+        self.colormap = np.empty(len(contigs))
+        covs = np.empty(len(contigs))
+        self.sizemap = np.empty(len(contigs))
+        i = 0
+        for contig in self.contigs:
+            self.sizemap[i] = np.sqrt(len(contig.sequence))  # TODO: Work out a good scale
+            covs[i] = contig.coverage
+            i += 1
+
+        covmin = np.min(covs)
+        covmax = np.max(covs)
+        covdiff = covmax - covmin
+        for i in range(len(contigs)):
+            self.colormap[i] = (covs[i] - covmin) / covdiff
+
+        # Bandwith calculation
         prep_data_a = BaseKDE._process_sequence(self.data[:, 0])
         prep_data_b = BaseKDE._process_sequence(self.data[:, 1])
 
@@ -506,7 +523,8 @@ class SelectGUI(QWidget):
 
     def update_datapoints(self):
         """Only updates the data points"""
-        self.ax.scatter(self.data[:, 0], self.data[:, 1], marker=".", s=2, c=self.selected_vec)
+        # TODO: s is size marker --> shall correspond with contig length || external color vec is necessary
+        self.ax.scatter(self.data[:, 0], self.data[:, 1], marker=".", s=self.sizemap, c=self.colormap)
 
     def update_peaks(self, x, y, z):
         """Only updates the peak points"""
@@ -595,7 +613,7 @@ class SelectGUI(QWidget):
         return sel_coverages, sel_kmer_counts
 
     def save_pressed(self):
-        dialog = NameSelectedDialog(self,self.DEBUG)
+        dialog = NameSelectedDialog(self, self.DEBUG)
         dialog.show()
 
     def save_to_file(self, name='prototype'):
