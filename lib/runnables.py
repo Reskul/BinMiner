@@ -7,6 +7,9 @@ from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
 from lib import FastaReader, Contig, MarkerGene
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 
 class DataLoadingRunnable(QRunnable):
     def __init__(self, *args, **kwargs):
@@ -70,6 +73,17 @@ class DataLoadingRunnable(QRunnable):
             while i < len(contigs):
                 contigs[i].kmere_counts = kmere_counts[i]
                 i += 1
+
+            # add single dimension coverage representation to contig
+            covs_multidim = [c.coverage for c in contigs]
+            if len(contigs[0].coverage) > 1:
+                scaled_cov = StandardScaler().fit_transform(covs_multidim)
+                coverages_1d = PCA(n_components=1, random_state=5).fit_transform(scaled_cov)
+                i = 0
+                while i < len(contigs):
+                    contigs[i].coverage_1d = coverages_1d[i]
+                    i += 1
+
             if self.plotstate == 0:  # Plot Kmere Data
                 kmere_sums = np.sum(kmere_counts, 1)
                 x_mat = (kmere_counts.T / kmere_sums).T  # Norm data (relative frequencies)
@@ -78,16 +92,11 @@ class DataLoadingRunnable(QRunnable):
             elif self.plotstate == 1:  # Plot Coverage Data
                 # Only if dimension is 2 oder higher
                 if len(contigs[0].coverage) > 1:
-                    covs = []
-                    for c in contigs:
-                        covs.append(c.coverage)
-                    covs = np.array(covs, dtype=float)
-                    plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(covs)
+                    plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(covs_multidim)
                 else:
                     failed = True
                     QMetaObject.invokeMethod(self.call, "data_failed", Qt.QueuedConnection,
                                              Q_ARG(str, "Coverage is 1-Dimensional. Use different Method"))
-
 
             elif self.plotstate == 2:  # Plot Combined Data
                 n = len(contigs)
