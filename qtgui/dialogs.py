@@ -189,10 +189,10 @@ class BinInfoDialog(QDialog):
         scaled_kmere_cnt = StandardScaler().fit_transform(sel_kmer_counts)
         sel_kmer_counts = PCA(n_components=n_components, random_state=5).fit_transform(scaled_kmere_cnt)
 
-        if len(sel_coverages[0]) > 1:
-            n_components = 1
-            scaled_cov = StandardScaler().fit_transform(sel_coverages)
-            sel_coverages = PCA(n_components=n_components, random_state=5).fit_transform(sel_coverages)
+        # if len(sel_coverages[0]) > 1:
+        #     n_components = 1
+        #     scaled_cov = StandardScaler().fit_transform(sel_coverages)
+        #     sel_coverages = PCA(n_components=n_components, random_state=5).fit_transform(sel_coverages)
 
         self.selected_cov = np.sort(sel_coverages)
         self.selected_kmer = np.sort(sel_kmer_counts)
