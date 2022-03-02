@@ -33,6 +33,7 @@ class Contig:
         self.mgs = []
         self.organism = organism
         self.coverage = None
+        self.coverage_1d = None
         self.sequence = seq
         self.kmere_counts = None
 
