@@ -376,9 +376,14 @@ class SelectGUI(QWidget):
         self.sizemap = np.empty(len(contigs))
         i = 0
         for contig in self.contigs:
-            self.sizemap[i] = np.sqrt(len(contig.sequence))  # TODO: Work out a good scale
-            covs[i] = contig.coverage
+            self.sizemap[i] = np.log2(len(contig.sequence))  # TODO: Work out a good scale
+            covs[i] = contig.coverage_1d
             i += 1
+
+        if self.DEBUG:
+            print(f"[DEBUG] SelectGUI.__init__(): Log-Length's of sequences:")
+            for l in self.sizemap:
+                print(l)
 
         covmin = np.min(covs)
         covmax = np.max(covs)
@@ -588,7 +593,7 @@ class SelectGUI(QWidget):
             c_mgs = c.mgs
             for mg in c_mgs:
                 contained_mgs[self.mg_dict[mg]] += 1
-            sel_coverages.append(c.coverage)
+            sel_coverages.append(c.coverage_1d)
             sel_kmer_counts.append(c.kmere_counts)
 
         val_greater_zero = [val > 0 for val in contained_mgs]
