@@ -52,7 +52,7 @@ class Contig:
                 return True
         return True
 
-    def to_fasta(self):
+    def to_fasta(self, covdim=1):
         # cut sequences in 80 char pieces or squeeze in \n at pos 80
         length = len(self.sequence)
         n_lines = int(np.floor(length / 80))
@@ -60,9 +60,9 @@ class Contig:
         seq = self.sequence
         seq_lines = []
         for i in range(n_lines):
-            seq_lines.append(seq[(i-1)*80:i*80])
+            seq_lines.append(seq[(i - 1) * 80:i * 80])
         seq_lines.append(seq[length - overhang:])
         seq = '\n'.join(seq_lines)
         # print(n_lines, overhang)
         # print(length, len(seq))
-        return f">{self.CONTIG_name};organism={self.organism};cov={self.coverage};mg={self.mgs}{seq}"
+        return f">{self.CONTIG_name};organism={self.organism};cov={self.coverage[:covdim]};mg={self.mgs}{seq}"

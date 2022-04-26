@@ -39,6 +39,8 @@ class BinInfoDialog(QDialog):
         self.c_ax = None
         self.k_ax = None
 
+        self.covdim = 1
+
         self.init_gui()
 
     def init_gui(self):
@@ -175,9 +177,10 @@ class BinInfoDialog(QDialog):
     #     else:
     #         return completeness, contamination, sorted_cov, kmer_counts
 
-    def update_data(self, sel_kmer_counts, sel_coverages):
+    def update_data(self, sel_kmer_counts, sel_coverages, covdim):
         n_components = 1
         n_selected = len(sel_coverages)
+        self.covdim = covdim
 
         sel_kmer_counts = np.array(sel_kmer_counts, dtype=int)
         sel_coverages = np.array(sel_coverages, dtype=float)
@@ -243,7 +246,10 @@ class BinInfoDialog(QDialog):
         self.c_ax.set_title("Coverage of selected contigs")
         self.k_ax.set_title("K-mer distribution of selected contigs")
 
-        self.c_ax.set_xlabel("Coverage")
+        if self.covdim > 1:
+            self.c_ax.set_xlabel("Coverage PC1")
+        else:
+            self.c_ax.set_xlabel("Coverage")
         self.c_ax.set_ylabel("Frequency")
         self.k_ax.set_xlabel("K-mer PC1")
         self.k_ax.set_ylabel("Frequency")
@@ -278,6 +284,7 @@ class NameSelectedDialog(QDialog):
         self.parent = parent
 
         self.name_input: QLineEdit = None
+        self.covdim_dropdown: QComboBox = None
         self.ok_btn = None
         self.cancel_btn = None
 
@@ -286,27 +293,34 @@ class NameSelectedDialog(QDialog):
     def init_gui(self):
         title_text = QLabel("Name the prototype genome")
         self.name_input = QLineEdit()
+        covdim_text = QLabel("CovDim in Header:")
+        self.covdim_dropdown = QComboBox()
         self.cancel_btn = QPushButton("CANCEL")
         self.cancel_btn.clicked.connect(self.cancel_clicked)
         self.ok_btn = QPushButton("OK")
         self.ok_btn.clicked.connect(self.ok_clicked)
         self.ok_btn.setDefault(True)
 
+        self.covdim_dropdown.addItems([str(item) for item in range(self.parent.covdim + 1)][1:])
+
         layout = QGridLayout()
         layout.addWidget(title_text, 0, 1)
         layout.addWidget(self.name_input, 1, 1)
-        layout.addWidget(self.cancel_btn, 2, 0, 1, 1)
-        layout.addWidget(self.ok_btn, 2, 2, 1, 1)
+        layout.addWidget(covdim_text, 2, 0, 1, 1)
+        layout.addWidget(self.covdim_dropdown, 2, 1, 1, 1)
+        layout.addWidget(self.cancel_btn, 3, 0, 1, 1)
+        layout.addWidget(self.ok_btn, 3, 2, 1, 1)
 
         self.setLayout(layout)
 
     def ok_clicked(self):
         name = self.name_input.text()
         name.strip()
+        covdims = self.covdim_dropdown.currentIndex() + 1
         if name != '':
-            self.parent.save_to_file(name)
+            self.parent.save_to_file(name=name, covdim=covdims)
         else:
-            self.parent.save_to_file()
+            self.parent.save_to_file(covdim=covdims)
 
         self.close()
 
