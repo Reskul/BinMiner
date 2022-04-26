@@ -76,13 +76,18 @@ class DataLoadingRunnable(QRunnable):
 
             # add single dimension coverage representation to contig
             covs_multidim = [c.coverage for c in contigs]
-            if len(contigs[0].coverage) > 1:
+            coverage_dim = len(contigs[0].coverage)
+            coverages_1d = None
+            if coverage_dim > 1:
                 scaled_cov = StandardScaler().fit_transform(covs_multidim)
                 coverages_1d = PCA(n_components=1, random_state=5).fit_transform(scaled_cov)
-                i = 0
-                while i < len(contigs):
+            i = 0
+            while i < len(contigs):
+                if coverage_dim > 1:
                     contigs[i].coverage_1d = coverages_1d[i]
-                    i += 1
+                else:
+                    contigs[i].coverage_1d = contigs[i].coverage
+                i += 1
 
             if self.plotstate == 0:  # Plot Kmere Data
                 kmere_sums = np.sum(kmere_counts, 1)
@@ -192,7 +197,7 @@ class DataLoadingRunnable(QRunnable):
             print(f"[DEBUG] DataLoadingRunnable.read_dna_data(): Number fo Contigs: {len(contigs)} | Type: {type(contigs)} ")
             # print(f"[DEBUG] DataLoadingRunnable.read_dna_data(): Fasta Representation:\n{contigs[0].to_fasta()}")
 
-        mgs = np.array(mgs)
+        mgs = np.array(mgs, dtype=MarkerGene)
 
         return contigs, mgs
 

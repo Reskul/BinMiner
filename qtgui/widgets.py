@@ -351,6 +351,7 @@ class SelectGUI(QWidget):
         self.TEST = test
         self.data = kmere_data
         self.contigs = contigs
+        self.covdim = len(contigs[0].coverage)
         self.mgs = mgs
         self.mg_dict = {}
         for i_idx in range(len(mgs)):
@@ -382,14 +383,16 @@ class SelectGUI(QWidget):
 
         if self.DEBUG:
             print(f"[DEBUG] SelectGUI.__init__(): Log-Length's of sequences:")
-            for l in self.sizemap:
-                print(l)
+            print(self.sizemap)
 
         covmin = np.min(covs)
         covmax = np.max(covs)
         covdiff = covmax - covmin
         for i in range(len(contigs)):
             self.colormap[i] = (covs[i] - covmin) / covdiff
+
+        if self.DEBUG:
+            print(self.colormap)
 
         # Bandwith calculation
         prep_data_a = BaseKDE._process_sequence(self.data[:, 0])
@@ -573,7 +576,7 @@ class SelectGUI(QWidget):
 
                 self.update_plot(highlighted_cont=path_list[last])  # , col='green')
                 sel_coverage, sel_kmer_counts = self.calc_values()
-                self.analyze_widget.update_data(sel_kmer_counts, sel_coverage)
+                self.analyze_widget.update_data(sel_kmer_counts, sel_coverage, self.covdim)
                 self.update_info_bar()
 
     def on_mpl_release(self, e):
@@ -621,7 +624,7 @@ class SelectGUI(QWidget):
         dialog = NameSelectedDialog(self, self.DEBUG)
         dialog.show()
 
-    def save_to_file(self, name='prototype'):
+    def save_to_file(self, name='prototype', covdim=1):
         sel_contigs = self.contigs[self.selected_vec]
         n = len(sel_contigs)
         filepath, _ = QFileDialog.getSaveFileName(self, "Save selection to fasta file", f'{name}_n{n}.fasta')
@@ -633,7 +636,7 @@ class SelectGUI(QWidget):
             for contig in sel_contigs:
                 if not self.TEST:
                     contig.organism = name
-                collection.append(contig.to_fasta())
+                collection.append(contig.to_fasta(covdim=covdim))
             content = "\n".join(collection).strip()
             file = open(filepath, 'w+')
             file.write(content)
