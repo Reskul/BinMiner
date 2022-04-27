@@ -3,6 +3,8 @@ import os
 import subprocess
 import numpy as np
 
+from kpal.klib import Profile
+
 from PyQt5.QtCore import *
 from sklearn.manifold import TSNE
 from lib import FastaReader, Contig, MarkerGene
@@ -20,10 +22,10 @@ class DataLoadingRunnable(QRunnable):
         self.call = args[0]
         self.contig_path = args[1]
         self.coverage_path = args[2]
-        self.kmere_path = args[3]
-        self.DATADIR = args[4]
-        self.perplexity = args[5]
-        self.plotstate = args[6]
+        self.DATADIR = args[3]
+        self.perplexity = args[4]
+        self.plotstate = args[5]
+        self.kmere_path = kwargs.get('kmere_path', None)
         self.DEBUG = kwargs.get('debug', False)
         self.testdata_path = kwargs.get('testdata_path', None)
         self.create = kwargs.get('create', False)
@@ -36,10 +38,10 @@ class DataLoadingRunnable(QRunnable):
         dataset_name = ntpath.basename(self.contig_path)
 
         if not self.create:
-            self.fetchmg_respath = args[7]
+            self.fetchmg_respath = args[6]
         else:
-            self.fetchmg_binpath = args[7]
-            self.prodigal_binpath = args[8]
+            self.fetchmg_binpath = args[6]
+            self.prodigal_binpath = args[7]
 
             self.protein_filename = f"{dataset_name}_prot.fasta"
             self.mg_output_dir = f"mgs_{dataset_name}"
@@ -61,8 +63,14 @@ class DataLoadingRunnable(QRunnable):
                 stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
 
-        kmere_counts = self.read_kmer_data()
-        contigs, mgs = self.read_dna_data()
+        kmere_counts_debug = None
+        if self.DEBUG and False: #need a new flag, maybe include in test flag but thats not the intention, so deactivating this with false
+            # not used atm
+            kmere_counts_debug = self.read_kmer_data()
+
+        contigs, mgs = self.read_data()
+
+        kmere_counts = self.calculate_kmere_data()
 
         failed = False
         plotdata = None
@@ -131,7 +139,7 @@ class DataLoadingRunnable(QRunnable):
             QMetaObject.invokeMethod(self.call, "data_ready", Qt.QueuedConnection, Q_ARG(type(contigs), contigs),
                                      Q_ARG(type(mgs), mgs), Q_ARG(type(plotdata), plotdata))
 
-    def read_dna_data(self):
+    def read_data(self):
         test_data = None
         if self.TEST_MODE:
             # read Test Data [contig_name,heritage]
@@ -200,6 +208,33 @@ class DataLoadingRunnable(QRunnable):
         mgs = np.array(mgs, dtype=MarkerGene)
 
         return contigs, mgs
+
+    def calculate_kmere_data(self):
+        if self.DEBUG:
+            print("[DEBUG] DataLoadingRunnable.run(): Calculating Kmere counts")
+
+        # copied code from P.Meinicke
+        # %% kmer profiles
+        profs = Profile.from_fasta_by_record(open(self.contig_path), 4)
+        p_list = [p for p in profs]
+        n = len(p_list)
+        p_mat = np.zeros((n, 256))
+
+        for i in range(n):
+            p = p_list[i]
+            p.balance()
+            p_mat[i] = p.counts
+
+        i_vec = -np.ones(256)
+        for i in range(256):
+            j = p.reverse_complement(i)
+            if i_vec[j] == -1:
+                i_vec[i] = i
+
+        inds = i_vec[i_vec > -1]
+        x_raw_mat = p_mat[:, i_vec > -1]
+
+        return x_raw_mat
 
     def read_kmer_data(self):
         if self.DEBUG:

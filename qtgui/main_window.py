@@ -44,13 +44,13 @@ class ControllingWindow(QMainWindow):
         elif self.STATUS == self.STATUS_SELECT:
             self.setCentralWidget(self.select_widget)
 
-    def process_input(self, contig_path, coverage_path, kmere_path, perplexity, plotstate, fetchmg_respath=None,
+    def process_input(self, contig_path, coverage_path, perplexity, plotstate, kmere_path=None, fetchmg_respath=None,
                       prodigal_path=None, fetchmg_path=None, testdata_path=None):
         if fetchmg_respath is None and fetchmg_path is None:
             print(f"[ERROR] FetchMG Results or path to FetchMG Bin must be provided.")
         elif fetchmg_respath is not None:
-            runnable = DataLoadingRunnable(self, contig_path, coverage_path, kmere_path, self.cfg.homepath, perplexity,
-                                           plotstate, fetchmg_respath, debug=self.DEBUG, testdata_path=testdata_path)
+            runnable = DataLoadingRunnable(self, contig_path, coverage_path, self.cfg.homepath, perplexity,
+                                           plotstate, fetchmg_respath, kmere_path=kmere_path, debug=self.DEBUG, testdata_path=testdata_path)
             QThreadPool.globalInstance().start(runnable)
         elif fetchmg_path is not None:
             print(f"[ERROR] Not finished this part yet ;).")

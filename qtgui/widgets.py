@@ -94,10 +94,11 @@ class InputGUI(QWidget):
         self.contig_coverage_le.clicked.connect(self.cc_clicked)
         f_layout.addRow((QLabel("Contig coverage file (.txt)")), self.contig_coverage_le)
 
-        # K-Mere Data ----------
-        self.kmere_dataset_le = QFileInputLine()
-        self.kmere_dataset_le.clicked.connect(self.km_clicked)
-        f_layout.addRow(QLabel("K-mer data file (.npy)"), self.kmere_dataset_le)
+        if self.DEBUG:
+            # K-Mere Data ----------
+            self.kmere_dataset_le = QFileInputLine()
+            self.kmere_dataset_le.clicked.connect(self.km_clicked)
+            f_layout.addRow(QLabel("K-mer data file (.npy)"), self.kmere_dataset_le)
 
         # Contig Test Data
         if self.TEST:
@@ -276,7 +277,7 @@ class InputGUI(QWidget):
         self.PLOTSTATE = self.PLOTSTATE_COMB
 
     def next_clicked(self):
-        if self.contig_sequences_path is not None and self.kmere_dataset_path is not None:
+        if self.contig_sequences_path is not None:
             if self.results_radbtn.isChecked() and self.fetchmg_result_path is not None:
                 if self.config:
                     self.config.write(self.config.CONTIGSEQ_KEY, self.contig_sequences_path)
@@ -284,7 +285,7 @@ class InputGUI(QWidget):
                     self.config.write(self.config.KMERE_KEY, self.kmere_dataset_path)
                     self.config.write(self.config.FETCHMGRES_KEY, self.fetchmg_result_path)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
-                                            self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
+                                            self.perplex_spbox.value(), self.PLOTSTATE, kmere_path=self.kmere_dataset_path,
                                             fetchmg_respath=self.fetchmg_result_path, testdata_path=self.test_path)
 
             elif self.source_radbtn.isChecked() and self.fetchmg_binpath is not None and self.prodigal_binpath is not None:
@@ -295,7 +296,7 @@ class InputGUI(QWidget):
                     self.config.write(self.config.FETCHMG_KEY, self.fetchmg_binpath)
                     self.config.write(self.config.PRODIGAL_KEY, self.prodigal_binpath)
                 self.parent().process_input(self.contig_sequences_path, self.contig_coverage_path,
-                                            self.kmere_dataset_path, self.perplex_spbox.value(), self.PLOTSTATE,
+                                            self.perplex_spbox.value(), self.PLOTSTATE, kmere_path=self.kmere_dataset_path,
                                             prodigal_path=self.prodigal_binpath, fetchmg_path=self.fetchmg_binpath, testdata_path=self.test_path)
             else:
                 print(f"[ERROR] Something went terribly wrong with radio buttons.")
@@ -308,21 +309,21 @@ class InputGUI(QWidget):
                     print(f"[DEBUG] InputGUI.lastckbox_clicked(): Config wurde NICHT neu erstellt.")
                 contig_seq = self.config.read(Configurator.CONTIGSEQ_KEY)
                 contig_cov = self.config.read(Configurator.CONTIGCOV_KEY)
-                kmere_set = self.config.read(Configurator.KMERE_KEY)
+                # kmere_set = self.config.read(Configurator.KMERE_KEY)
                 fetchmg_res = self.config.read(Configurator.FETCHMGRES_KEY)
                 fetchmg_bin = self.config.read(Configurator.FETCHMG_KEY)
                 prodigal_bin = self.config.read(Configurator.PRODIGAL_KEY)
 
                 self.contig_sequences_path = contig_seq
                 self.contig_coverage_path = contig_cov
-                self.kmere_dataset_path = kmere_set
+                # self.kmere_dataset_path = kmere_set
                 self.fetchmg_result_path = fetchmg_res
                 self.fetchmg_binpath = fetchmg_bin
                 self.prodigal_binpath = prodigal_bin
 
                 self.contig_dataset_le.setText(contig_seq)
                 self.contig_coverage_le.setText(contig_cov)
-                self.kmere_dataset_le.setText(kmere_set)
+                # self.kmere_dataset_le.setText(kmere_set)
                 self.fetchmg_res_le.setText(fetchmg_res)
                 self.fetchmg_path_le.setText(fetchmg_bin)
                 self.prodigal_path_le.setText(prodigal_bin)
@@ -330,14 +331,14 @@ class InputGUI(QWidget):
             # clear all LineEdits
             self.contig_dataset_le.setText("")
             self.contig_coverage_le.setText("")
-            self.kmere_dataset_le.setText("")
+            # self.kmere_dataset_le.setText("")
             self.fetchmg_res_le.setText("")
             self.fetchmg_path_le.setText("")
             self.prodigal_path_le.setText("")
 
             self.contig_sequences_path = None
             self.contig_coverage_path = None
-            self.kmere_dataset_path = None
+            # self.kmere_dataset_path = None
             self.fetchmg_result_path = None
             self.fetchmg_binpath = None
             self.prodigal_binpath = None
