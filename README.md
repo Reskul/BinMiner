@@ -13,3 +13,4 @@ Neccessary Python Modules:
 -sklearn
 -skimage
 -KDEpy
+-kPAL / biopython
