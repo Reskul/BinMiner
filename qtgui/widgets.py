@@ -104,7 +104,7 @@ class InputGUI(QWidget):
         if self.TEST:
             self.test_le = QFileInputLine()
             self.test_le.clicked.connect(self.test_clicked)
-            f_layout.addRow(QLabel("Contig heritage file (.txt)"), self.test_le)
+            f_layout.addRow(QLabel("Contig labels file (.txt)"), self.test_le)
 
         # TSNE Perplexity Parameter
         perplex_lbl = QLabel("T-SNE perplexity")
