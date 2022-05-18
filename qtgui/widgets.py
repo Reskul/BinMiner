@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 
 from matplotlib import patches
 from matplotlib.axes import Axes
+from matplotlib.path import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.backend_bases import _Mode
@@ -19,6 +20,7 @@ from KDEpy.bw_selection import improved_sheather_jones, silvermans_rule
 from skimage.feature import peak_local_max
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from scipy.spatial import ConvexHull
 
 from lib import *
 from .dialogs import BinInfoDialog, NameSelectedDialog
@@ -365,6 +367,9 @@ class SelectGUI(QWidget):
         self.selected_vec = None
         self.grid_points = 100
 
+        self.contour_visible = False
+        self.patch = None
+
         self.prototype_name = None
 
         self.x_lim = None
@@ -498,7 +503,7 @@ class SelectGUI(QWidget):
             self.completeness_lbl.setText("Completeness: --")
             self.contamination_lbl.setText("Contamination: --")
 
-    def update_plot(self, highlighted_cont=None, col=None):
+    def update_plot(self, highlighted_cont: Path = None, col=None):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
         if self.data is not None:
             self.ax.clear()
@@ -509,12 +514,27 @@ class SelectGUI(QWidget):
                     print(f"[DEBUG] SelectGUI.update_plot(): Setting Axes View Limits")
             self.ax.tick_params(axis='x', labelsize='14')
             self.ax.tick_params(axis='y', labelsize='14')
-            self.ax.patches = []
+
+            # x, y, z = self.update_kde()
+            # if highlighted_cont is not None:
+            #     self.ax.patches.pop()
+            #     # TODO: Selection-> Working Visualization: draw only outer line instead of outer&inner of contour level
+            #     patch = patches.PathPatch(highlighted_cont, facecolor=col, lw=1, edgecolor='black', fill=False)
+            #     self.ax.add_patch(patch)
+            # TODO fix!
+
             x, y, z = self.update_kde()
             if highlighted_cont is not None:
-                # TODO: Selection-> Working Visualization: draw only outer line instead of outer&inner of contour level
-                patch = patches.PathPatch(highlighted_cont, facecolor=col, lw=1, edgecolor='black', fill=False)
-                self.ax.add_patch(patch)
+                if self.contour_visible:
+                    self.patch.remove()
+                    self.contour_visible = False
+                hull = ConvexHull(highlighted_cont.vertices)
+                hull_vertices = highlighted_cont.vertices[hull.vertices]
+                hull_path = Path(hull_vertices, closed=True)
+                self.patch = patches.PathPatch(hull_path, facecolor=col, lw=1, edgecolor='black', fill=False)
+                self.ax.add_patch(self.patch)
+                self.contour_visible = True
+
             self.update_datapoints()
             self.update_peaks(x, y, z)
             self.canvas.draw()
