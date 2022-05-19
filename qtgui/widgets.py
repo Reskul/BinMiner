@@ -518,16 +518,20 @@ class SelectGUI(QWidget):
             # x, y, z = self.update_kde()
             # if highlighted_cont is not None:
             #     self.ax.patches.pop()
-            #     # TODO: Selection-> Working Visualization: draw only outer line instead of outer&inner of contour level
             #     patch = patches.PathPatch(highlighted_cont, facecolor=col, lw=1, edgecolor='black', fill=False)
             #     self.ax.add_patch(patch)
-            # TODO fix!
+            # TODO find a way to draw a outline without convex hull, because convex hull could show the user wrong points that are not really selected!
 
+            # update kernel density estimation contours
             x, y, z = self.update_kde()
+            if self.DEBUG:
+                print("[DEBUG] SelectGUI.update_plot(): KDE X:", x.shape, " Y:", y.shape, " Z:", z.shape)
+            contour_coords = np.meshgrid(x, y)
             if highlighted_cont is not None:
                 if self.contour_visible:
                     self.patch.remove()
                     self.contour_visible = False
+                # find convex hull for outline of selected contour // convex Hull is not quite what is needed
                 hull = ConvexHull(highlighted_cont.vertices)
                 hull_vertices = highlighted_cont.vertices[hull.vertices]
                 hull_path = Path(hull_vertices, closed=True)
@@ -535,6 +539,7 @@ class SelectGUI(QWidget):
                 self.ax.add_patch(self.patch)
                 self.contour_visible = True
 
+            # update the rest
             self.update_datapoints()
             self.update_peaks(x, y, z)
             self.canvas.draw()
@@ -552,7 +557,6 @@ class SelectGUI(QWidget):
 
     def update_datapoints(self):
         """Only updates the data points"""
-        # TODO: s is size marker --> shall correspond with contig length || external color vec is necessary
         self.ax.scatter(self.data[:, 0], self.data[:, 1], marker=".", s=self.sizemap, c=self.colormap)
 
     def update_peaks(self, x, y, z):
