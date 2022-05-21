@@ -503,7 +503,7 @@ class SelectGUI(QWidget):
             self.completeness_lbl.setText("Completeness: --")
             self.contamination_lbl.setText("Contamination: --")
 
-    def update_plot(self, highlighted_cont: Path = None, col=None):
+    def update_plot(self, selection: Path = None, col=None):
         """Updates Matplotlib plots, is called when stuff changed in Data"""
         if self.data is not None:
             self.ax.clear()
@@ -527,15 +527,22 @@ class SelectGUI(QWidget):
             if self.DEBUG:
                 print("[DEBUG] SelectGUI.update_plot(): KDE X:", x.shape, " Y:", y.shape, " Z:", z.shape)
             contour_coords = np.meshgrid(x, y)
-            if highlighted_cont is not None:
+            if selection is not None:
+                if self.DEBUG:
+                    print("[DEBUG]\tSelectGUI.update_plot(): Selection Path.codes:", selection.codes, "\n\t\tPath.vertices.shape:",
+                          selection.vertices.shape)
                 if self.contour_visible:
                     self.patch.remove()
                     self.contour_visible = False
-                # find convex hull for outline of selected contour // convex Hull is not quite what is needed
-                hull = ConvexHull(highlighted_cont.vertices)
-                hull_vertices = highlighted_cont.vertices[hull.vertices]
-                hull_path = Path(hull_vertices, closed=True)
-                self.patch = patches.PathPatch(hull_path, facecolor=col, lw=1, edgecolor='black', fill=False)
+
+                closepoly_idx = np.argwhere(selection.codes == 79)
+                if self.DEBUG:
+                    print("[DEBUG]\tSelectGUI.update_plot(): Closepoly Idx:", closepoly_idx)
+
+                outline_vertices = selection.vertices[:closepoly_idx[0][0]+1]
+
+                outline_path = Path(outline_vertices, codes=selection.codes[:closepoly_idx[0][0]+1], closed=True)
+                self.patch = patches.PathPatch(outline_path, facecolor=col, lw=1, edgecolor='black', fill=False)
                 self.ax.add_patch(self.patch)
                 self.contour_visible = True
 
@@ -599,7 +606,7 @@ class SelectGUI(QWidget):
                     print("Nbr of found paths:", len(path_list))
                     print(self.selected_vec[0], np.shape(self.selected_vec), '\n', np.shape(self.data))
 
-                self.update_plot(highlighted_cont=path_list[last])  # , col='green')
+                self.update_plot(selection=path_list[last])  # , col='green')
                 sel_coverage, sel_kmer_counts = self.calc_values()
                 self.analyze_widget.update_data(sel_kmer_counts, sel_coverage, self.covdim)
                 self.update_info_bar()
