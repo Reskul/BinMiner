@@ -1,5 +1,3 @@
-import ntpath
-
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -11,16 +9,13 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.backend_bases import _Mode
 from matplotlib.figure import Figure
-import matplotlib.colors as colors
 import numpy as np
 
 from KDEpy import FFTKDE
 from KDEpy.BaseKDE import BaseKDE
 from KDEpy.bw_selection import improved_sheather_jones, silvermans_rule
 from skimage.feature import peak_local_max
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from scipy.spatial import ConvexHull
+
 
 from lib import *
 from .dialogs import BinInfoDialog, NameSelectedDialog
