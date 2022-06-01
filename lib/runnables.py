@@ -58,7 +58,7 @@ class DataLoadingRunnable(QRunnable):
             completed_prodigal.check_returncode()
 
             completed_fetchmg = subprocess.run(
-                ["perl", self.fetchmg_binpath, "-d", self.contig_path, "-o", f"{self.DATADIR}/{self.mg_output_dir}",
+                [f"./{self.fetchmg_binpath}", "-d", self.contig_path, "-o", f"{self.DATADIR}/{self.mg_output_dir}",
                  "-m extraction", f"{self.DATADIR}/prodigal/{self.protein_filename}"], stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
             # completed_fetchmg.check_returncode()  # fetchMG doesn't like being run like this
