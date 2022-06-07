@@ -70,3 +70,14 @@ class FastaHeaderMYCC:
 
     def __repr__(self):
         return f"{self.contig}"
+
+
+class FastaHeaderBINMINER:
+    def __init__(self, contig, org, coverage, mg):
+        self.contig = contig
+        self.organism = org
+        self.coverage = coverage
+        self.marker_genes = mg
+
+    def __str__(self):
+        return f"{self.contig} | {self.organism} | {self.coverage} | {self.marker_genes}"
