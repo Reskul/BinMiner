@@ -4,7 +4,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-    bin_filepath = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\030622_GUI+Sequenzen\\Bin01_n176.fasta"
+    bin_filename = "Bin05_n113.fasta"
+    bin_name = bin_filename[:bin_filename.rfind('.')]
+    print(bin_name)
+    bin_filepath = f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\030622_GUI+Sequenzen\\{bin_filename}"
     labels_filepath = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Datensatz_25s\\25s_mycc\\member.txt"
 
     bin_file = open(bin_filepath, 'r')
@@ -54,8 +57,8 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots()
     ax.bar(organisms_vec, count_vec_rel)
-    plt.yticks(ticks=[])
+    plt.yticks(ticks=[0, 0.25, 0.5, 0.75, 1.0], labels=['0%', '25%', '50%', '75%', '100%'], rotation=130, va='baseline')
     plt.xticks(rotation=90, ha='center')
     plt.tight_layout()
-    plt.savefig("C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\030622_GUI+Sequenzen\\Bin01_n176_plot.png")
+    plt.savefig(f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\030622_GUI+Sequenzen\\{bin_name}_barplot.png")
     plt.show()
