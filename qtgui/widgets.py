@@ -16,7 +16,6 @@ from KDEpy.BaseKDE import BaseKDE
 from KDEpy.bw_selection import improved_sheather_jones, silvermans_rule
 from skimage.feature import peak_local_max
 
-
 from lib import *
 from .dialogs import BinInfoDialog, NameSelectedDialog
 
@@ -370,7 +369,7 @@ class SelectGUI(QWidget):
         self.x_lim = None
         self.y_lim = None
 
-        self.analyze_widget = BinInfoDialog(self.parent(), debug=self.DEBUG)
+        self.expanded_info_dialog = BinInfoDialog(self.parent(), debug=self.DEBUG)
 
         # Calculating Color and size values for depiction, Color-> Coverage & Size-> Contig length
         self.colormap = np.empty(len(contigs))
@@ -415,8 +414,11 @@ class SelectGUI(QWidget):
         back_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # Data Visualization ----------
-        fig = Figure()
+        tight_dict = {'w_pad': 0, 'h_pad': 0, 'rect': (0, 0, 1, 1)}
+        fig = Figure(tight_layout=tight_dict, frameon=False)
         self.ax: Axes = fig.add_subplot(111)
+        self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
         self.canvas = FigureCanvas(fig)
         # self.canvas.resize(300, 300)
         self.toolbar = MyNavigationToolbar(self.canvas, self)
@@ -467,7 +469,7 @@ class SelectGUI(QWidget):
         # self.cont_slider.sliderReleased.connect(self.on_cont_slider_change)
         self.cont_slider.sliderMoved.connect(self.on_cont_slider_change)
 
-        slider_layout = QGridLayout()  # TODO Add Button underneath to print selected to fasta file, maybe also somehow allow naming the "found" organism
+        slider_layout = QGridLayout()
         slider_layout.addWidget(self.bw_nbr_lbl, 0, 0, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(self.bw_slider, 1, 0, alignment=Qt.AlignHCenter)
         slider_layout.addWidget(bw_slider_lbl, 2, 0)
@@ -534,9 +536,9 @@ class SelectGUI(QWidget):
                 if self.DEBUG:
                     print("[DEBUG]\tSelectGUI.update_plot(): Closepoly Idx:", closepoly_idx)
 
-                outline_vertices = selection.vertices[:closepoly_idx[0][0]+1]
+                outline_vertices = selection.vertices[:closepoly_idx[0][0] + 1]
 
-                outline_path = Path(outline_vertices, codes=selection.codes[:closepoly_idx[0][0]+1], closed=True)
+                outline_path = Path(outline_vertices, codes=selection.codes[:closepoly_idx[0][0] + 1], closed=True)
                 self.patch = patches.PathPatch(outline_path, facecolor=col, lw=1, edgecolor='black', fill=False)
                 self.ax.add_patch(self.patch)
                 self.contour_visible = True
@@ -603,7 +605,7 @@ class SelectGUI(QWidget):
 
                 self.update_plot(selection=path_list[last])  # , col='green')
                 sel_coverage, sel_kmer_counts = self.calc_values()
-                self.analyze_widget.update_data(sel_kmer_counts, sel_coverage, self.covdim)
+                self.expanded_info_dialog.update_data(sel_kmer_counts, sel_coverage, self.covdim)
                 self.update_info_bar()
 
     def on_mpl_release(self, e):
@@ -673,11 +675,11 @@ class SelectGUI(QWidget):
     def show_diagram_dialog(self):
         """Takes Selected Datapoints and checks in MG Data for MG's and calculates coverage and contamination"""
         if self.n_selected > 0:
-            if not self.analyze_widget.isVisible():
-                self.analyze_widget.show()
+            if not self.expanded_info_dialog.isVisible():
+                self.expanded_info_dialog.show()
 
     def back_clicked(self):
-        self.analyze_widget.close()
+        self.expanded_info_dialog.close()
         self.parent().STATUS = self.parent().STATUS_INPUT
         self.parent().determine_widget()
 
