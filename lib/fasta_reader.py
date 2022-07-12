@@ -9,6 +9,7 @@ class FastaReader:
     PRODIGAL = 3
     MYCC = 4
     BINMINER = 5
+    RAYMETA = 6
 
     def __init__(self, origin):
         self.origin = origin  # origin/Database 1=UniProtKB, 2=NCBI, 3=Prodigal
@@ -114,13 +115,24 @@ class FastaReader:
                 seq_vec[i_idx] = Sequence(seq, name)
                 i_idx = i_idx + 1
         elif self.origin == self.MYCC:
-            seq_vec = np.empty(seq_cnt, dtype=FastaHeaderMYCC)
+            seq_vec = np.empty(seq_cnt, dtype=Sequence)
             i_idx = 0
             for entry in data_vec:
                 parts = entry.split('\n')
                 info_line = parts[0]
                 seq = "".join(parts[1:])
-                h = FastaHeaderMYCC(info_line.strip())
+                h = FastaHeaderMYCC(info_line.split(' ')[0])
+
+                seq_vec[i_idx] = Sequence(seq, i_idx, header=h)
+                i_idx += 1
+        elif self.origin == self.RAYMETA:
+            seq_vec = np.empty(seq_cnt, dtype=Sequence)
+            i_idx = 0
+            for entry in data_vec:
+                parts = entry.split('\n')
+                info_line = parts[0]
+                seq = "".join(parts[1:])
+                h = FastaHeaderRAYMETA(info_line.split(' ')[0], info_line.split(' ')[1])
 
                 seq_vec[i_idx] = Sequence(seq, i_idx, header=h)
                 i_idx += 1

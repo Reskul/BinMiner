@@ -72,6 +72,18 @@ class FastaHeaderMYCC:
         return f"{self.contig}"
 
 
+class FastaHeaderRAYMETA:
+    def __init__(self, contig, number):
+        self.contig = contig
+        self.length = number
+
+    def __str__(self):
+        return f"{self.contig}"
+
+    def __repr__(self):
+        return f"{self.contig}"
+
+
 class FastaHeaderBINMINER:
     def __init__(self, contig, org, coverage, mg):
         self.contig = contig
