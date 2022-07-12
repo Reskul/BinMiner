@@ -376,8 +376,10 @@ class SelectGUI(QWidget):
         covs = np.empty(len(contigs))
         self.sizemap = np.empty(len(contigs))
         i = 0
+        mean_length = sum([np.log2(len(contig.sequence)) for contig in self.contigs]) / len(self.contigs)
         for contig in self.contigs:
-            self.sizemap[i] = np.log2(len(contig.sequence))  # TODO: Work out a good scale
+            log_len = np.log2(len(contig.sequence))
+            self.sizemap[i] = (log_len ** 2) / mean_length  # np.sqrt(2 ** log_len) / (log_len * 2)  # TODO: Work out a good scale
             covs[i] = contig.coverage_1d
             i += 1
 
