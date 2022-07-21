@@ -38,6 +38,10 @@ class QFileInputLine(QLineEdit):
 
 
 class MyNavigationToolbar(NavigationToolbar2QT):
+    print(NavigationToolbar2QT.toolitems)
+    toolitems = [t for t in NavigationToolbar2QT.toolitems if
+                 t[0] in ('Home', 'Back', 'Forward', None, 'Pan', 'Zoom', 'Save')]
+
     def _init_toolbar(self):
         pass
 
@@ -376,10 +380,14 @@ class SelectGUI(QWidget):
         covs = np.empty(len(contigs))
         self.sizemap = np.empty(len(contigs))
         i = 0
-        mean_length = sum([np.log2(len(contig.sequence)) for contig in self.contigs]) / len(self.contigs)
+        log_lengths = [np.log2(len(contig.sequence)) for contig in self.contigs]
+        mean_length = sum(log_lengths) / len(self.contigs)
+        max_length = max(log_lengths)
+        min_length = min(log_lengths)
         for contig in self.contigs:
             log_len = np.log2(len(contig.sequence))
-            self.sizemap[i] = (log_len ** 2) / mean_length  # np.sqrt(2 ** log_len) / (log_len * 2)  # TODO: Work out a good scale
+            # TODO: Work out a good scale
+            self.sizemap[i] = (((log_len - mean_length) ** 3) + abs((min_length - mean_length) ** 3) / 4)
             covs[i] = contig.coverage_1d
             i += 1
 
