@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='BinMiner1.1.1',
+    name='BinMiner1.1.4',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -41,4 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='icon.ico'
 )
