@@ -122,7 +122,6 @@ class DataLoadingRunnable(QRunnable):
                     kmere = contigs[i].kmere_counts
                     row = np.hstack((kmere, cov))
                     x_mat[i] = row
-                # TODO normalize x_mat here to not over- or underweight coverage
                 x_mat_sums = np.sum(x_mat, 1)
                 x_mat = (x_mat.T / x_mat_sums).T
                 plotdata = TSNE(n_components=2, perplexity=self.perplexity).fit_transform(x_mat)
