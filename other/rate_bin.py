@@ -4,12 +4,19 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-    ten_s_labels = "C:\\Users\\resku\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Datensatz 10s\\mycc_10s\\10s.spe.txt"
+    ten_s_denovo_labels = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\illumina_10s_denovo\\10s_cutoff\\10s_labels_cutoff.txt"
+    ten_s_labels = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Datensatz_10s\\mycc_10s\\10s.spe.txt"
+    ten_s_newlabels = "F:\\10s_nl2_labels.txt"
     twentyfive_s_labels = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Datensatz_25s\\25s_mycc\\member.txt"
-    bin_filename = "Bin00_n2185.fasta"
+    sixtyfour_labels = ""
+    hundred_labels = "C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Datensatz_100s\\100s.spe.txt"
+
+    results_folder = "200722_10S"
+    bin_filename = "Bin001_n3256.fasta"
     bin_name = bin_filename[:bin_filename.rfind('.')]
     print(bin_name)
-    bin_filepath = f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\190622_10S\\{bin_filename}"
+    bin_filepath = f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\{results_folder}\\{bin_filename}"
+
     labels_filepath = ten_s_labels
 
     bin_file = open(bin_filepath, 'r')
@@ -18,7 +25,7 @@ if __name__ == '__main__':
     reader = FastaReader(FastaReader.BINMINER)
     header_vec = reader.read_header_only(bin_file)
 
-    labels_vec = labels_file.read().split('\n')
+    labels_vec = labels_file.read().split('\n')[:-1]
     print(labels_vec[0].split('\t'))
     organisms_dict = {'ERROR': []}
     for l in labels_vec:
@@ -60,12 +67,12 @@ if __name__ == '__main__':
     result[1::2] = count_vec_rel
     print(result)
 
-    print(organisms_dict['ERROR'])
+    print(f"ERROR({len(organisms_dict['ERROR'])}): {organisms_dict['ERROR']}")
 
     fig, ax = plt.subplots()
-    ax.bar(organisms_vec[1:], count_vec_rel[1:])
+    ax.bar(organisms_vec[1:], count_vec_rel[1:])  # organisms_vec[1:], count_vec_rel[1:]
     plt.yticks(ticks=[0, 0.25, 0.5, 0.75, 1.0], labels=['0%', '25%', '50%', '75%', '100%'], rotation=130, va='baseline')
     plt.xticks(rotation=90, ha='center')
     plt.tight_layout()
-    plt.savefig(f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\030622_GUI+Sequenzen\\{bin_name}_barplot.png")
+    plt.savefig(f"C:\\Users\\resku\\OneDrive\\Dokumente\\10SoSe21\\Bachelor_Arbeit\\Ergebnisse\\{results_folder}\\{bin_name}_barplot.png")
     plt.show()
