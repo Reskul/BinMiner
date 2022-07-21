@@ -7,7 +7,7 @@ if __name__ == '__main__':
     cnt = 0
     contigs = np.empty(0)
     labels_dict = {}
-    filename = '10s'
+    filename = '10s_nl2'
     THRESHOLD = 10.0  # Threshold in percent to assign an organism to a contig
     # Test
     # with open('f:\\10s.sam', 'r') as sam_:
@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 cnt += 1
         contigs = contigs[1:]
         print("Saving contigs list...")
-        with open(f'f:\\10s_contigs_list.txt', 'w') as contigs_out:
+        with open(f'f:\\{filename}_contigslist.txt', 'w') as contigs_out:
             contigs_out.writelines(contigs)
         print("Saving to json...")
         export_file = open(f"f:\\{filename}.json", "w")
@@ -59,7 +59,7 @@ if __name__ == '__main__':
             else:
                 assignments.append('TNM_ERROR')  # Threshold Not Met Error
         print("Saving labels...")
-        with open(f'f:\\10s_labels.txt', 'w') as out:
+        with open(f'f:\\{filename}_labels.txt', 'w') as out:
             i = 0
             for key in keys:
                 out.write(f"{key}\t{assignments[i]}\n")
