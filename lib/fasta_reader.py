@@ -136,6 +136,22 @@ class FastaReader:
 
                 seq_vec[i_idx] = Sequence(seq, i_idx, header=h)
                 i_idx += 1
+        elif self.origin == self.BINMINER:
+            seq_vec = np.empty(seq_cnt, dtype=Sequence)
+            i_idx = 0
+            for entry in data_vec:
+                parts = entry.split('\n')
+                info_line = parts[0]
+                seq = "".join(parts[1:])
+                info_vec = info_line.split(';')
+                name = info_vec[0]
+                org = info_vec[1].split('=')[1]
+                cov = [float(x) for x in info_vec[2].split('=')[1].strip('[]').split(',')]
+                mgs = info_vec[3].split('=')[1].strip('[]').split(',')
+                h = FastaHeaderBINMINER(name, org, cov, mgs)
+
+                seq_vec[i_idx] = Sequence(seq, i_idx, header=h)
+                i_idx += 1
         else:
             print(f"[ERROR] FastaReader.read_full_fasta(): Unknown Header.")
         return seq_vec
